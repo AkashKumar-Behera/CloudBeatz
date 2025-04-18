@@ -1,7 +1,7 @@
 [Setup]
 AppId=B9F6E402-0CAE-4045-BDE6-14BD6C39C4EA
 AppVersion=1.11.2+24
-AppName=Harmony Music
+AppName=Cloud Beatz
 AppPublisher=anandnet
 AppPublisherURL=https://github.com/anandnet/Harmony-Music
 AppSupportURL=https://github.com/anandnet/Harmony-Music
@@ -31,8 +31,8 @@ Source: "..\..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ign
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
-Name: "{autoprograms}\Harmony Music"; Filename: "{app}\harmonymusic.exe"
-Name: "{autodesktop}\Harmony Music"; Filename: "{app}\harmonymusic.exe"; Tasks: desktopicon
+Name: "{autoprograms}\Cloud Beatz"; Filename: "{app}\harmonymusic.exe"
+Name: "{autodesktop}\Cloud Beatz"; Filename: "{app}\harmonymusic.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\harmonymusic.exe"; Description: "{cm:LaunchProgram,{#StringChange('Harmony Music', '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\harmonymusic.exe"; Description: "{cm:LaunchProgram,{#StringChange('Cloud Beatz', '&', '&&')}}"; Flags: nowait postinstall skipifsilent

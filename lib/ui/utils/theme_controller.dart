@@ -102,8 +102,6 @@ class ThemeController extends GetxController {
               brightness: Brightness.dark,
               backgroundColor: primarySwatch[700],
               primarySwatch: primarySwatch),
-          //accentColor: primarySwatch[200],
-          dialogBackgroundColor: primarySwatch[700],
           cardColor: primarySwatch[600],
           primaryColorLight: primarySwatch[400],
           primaryColorDark: primarySwatch[700],
@@ -157,7 +155,8 @@ class ThemeController extends GetxController {
           textSelectionTheme: TextSelectionThemeData(
               cursorColor: primarySwatch[200],
               selectionColor: primarySwatch[200],
-              selectionHandleColor: primarySwatch[200])
+              selectionHandleColor: primarySwatch[200]),
+          dialogTheme: DialogThemeData(backgroundColor: primarySwatch[700])
           //scaffoldBackgroundColor: primarySwatch[700]
           );
       return baseTheme.copyWith(

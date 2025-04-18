@@ -655,16 +655,16 @@ class SettingsScreen extends StatelessWidget {
                 children: [
                   ListTile(
                     contentPadding: const EdgeInsets.only(left: 5, right: 10),
-                    title: Text("github".tr),
+                    title: Text("GitHub".tr),
                     subtitle: Text(
-                      "${"githubDes".tr}${((Get.find<PlayerController>().playerPanelMinHeight.value) == 0 || !isBottomNavActive) ? "" : "\n\n${settingsController.currentVersion} ${"by".tr} anandnet"}",
+                      "${"githubDes".tr}${((Get.find<PlayerController>().playerPanelMinHeight.value) == 0 || !isBottomNavActive) ? "" : "\n\n${settingsController.currentVersion} ${"by".tr} AkashKumar-Behera"}",
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     isThreeLine: true,
                     onTap: () {
                       launchUrl(
                         Uri.parse(
-                          'https://github.com/anandnet/Harmony-Music',
+                          'https://github.com/AkashKumar-Behera/CloudBeatz',
                         ),
                         mode: LaunchMode.externalApplication,
                       );
@@ -675,10 +675,10 @@ class SettingsScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         Text(
-                          "Harmony Music",
+                          "Cloud Music",
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
-                        Text(settingsController.currentVersion,
+                        Text("v1.2.0",
                             style: Theme.of(context).textTheme.titleMedium)
                       ],
                     ),
@@ -690,7 +690,7 @@ class SettingsScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 20.0),
             child: Text(
-              "${settingsController.currentVersion} ${"by".tr} anandnet",
+              "${settingsController.currentVersion} ${"by".tr} AkashKumar-Behera",
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
