@@ -30,7 +30,7 @@ Future<AudioHandler> initAudioService() async {
   return await AudioService.init(
     builder: () => MyAudioHandler(),
     config: const AudioServiceConfig(
-      androidNotificationIcon: 'mipmap/ic_launcher_monochrome',
+      androidNotificationIcon: 'drawable/ic_launcher',
       androidNotificationChannelId: 'com.mycompany.myapp.audio',
       androidNotificationChannelName: 'Cloud Beatz Notification',
       androidNotificationOngoing: true,

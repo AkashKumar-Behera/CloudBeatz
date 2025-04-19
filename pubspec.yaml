@@ -93,6 +93,23 @@ dev_dependencies:
     sdk: flutter
   jnigen: ^0.14.0
 
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.3.8
+
+flutter_native_splash:
+  color: "#000000" # Splash background color
+  image: assets/icons/icon.png # Your custom logo path
+  android: true
+  ios: false
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/icon.png"  # Replace with your actual icon path
+  adaptive_icon_background: "#ffffff"  # ya background image path bhi de sakte ho
+  adaptive_icon_foreground: "assets/icons/icon.png"
+
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 # The following section is specific to Flutter packages.
