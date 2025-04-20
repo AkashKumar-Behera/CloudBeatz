@@ -126,12 +126,12 @@ void _setAppInitPrefs() {
   final appPrefs = Hive.box("AppPrefs");
   if (appPrefs.isEmpty) {
     appPrefs.putAll({
-      'themeModeType': 0,
+      'themeModeType': 1,
       "cacheSongs": false,
       "skipSilenceEnabled": false,
       'streamingQuality': 1,
       'themePrimaryColor': 4278199603,
-      'discoverContentType': "QP",
+      'discoverContentType': "BOLI",
       'newVersionVisibility': updateCheckFlag,
       "cacheHomeScreenData": true
     });

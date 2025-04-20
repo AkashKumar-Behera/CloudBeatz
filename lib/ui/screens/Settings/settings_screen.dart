@@ -11,7 +11,7 @@ import '../../widgets/backup_dialog.dart';
 import '../../widgets/restore_dialog.dart';
 import '../Library/library_controller.dart';
 import '../../widgets/snackbar.dart';
-import '/ui/widgets/link_piped.dart';
+//import '/ui/widgets/link_piped.dart';
 import '/services/music_service.dart';
 import '/ui/player/player_controller.dart';
 import '/ui/utils/theme_controller.dart';
@@ -57,7 +57,7 @@ class SettingsScreen extends StatelessWidget {
                             onTap: () {
                               launchUrl(
                                 Uri.parse(
-                                  'https://github.com/anandnet/Harmony-Music/releases/latest',
+                                  'https://github.com/AkashKumar-Behera/CloudBeatz/releases/latest',
                                 ),
                                 mode: LaunchMode.externalApplication,
                               );
@@ -260,7 +260,7 @@ class SettingsScreen extends StatelessWidget {
                               onChanged:
                                   settingsController.toggleCacheHomeScreenData),
                         )),
-                    ListTile(
+                    /*ListTile(
                       contentPadding:
                           const EdgeInsets.only(left: 5, right: 10, top: 0),
                       title: Text("Piped".tr),
@@ -287,7 +287,7 @@ class SettingsScreen extends StatelessWidget {
                               settingsController.unlinkPiped();
                             }
                           }),
-                    ),
+                    ),*/
                     Obx(() => (settingsController.isLinkedWithPiped.isTrue)
                         ? ListTile(
                             contentPadding: const EdgeInsets.only(
@@ -675,10 +675,10 @@ class SettingsScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         Text(
-                          "Cloud Music",
+                          "Cloud Beatz",
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
-                        Text("v1.2.0",
+                        Text(settingsController.currentVersion,
                             style: Theme.of(context).textTheme.titleMedium)
                       ],
                     ),
@@ -690,7 +690,7 @@ class SettingsScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 20.0),
             child: Text(
-              "${settingsController.currentVersion} ${"by".tr} AkashKumar-Behera",
+              "${settingsController.currentVersion} ${"by".tr} Akash",
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),

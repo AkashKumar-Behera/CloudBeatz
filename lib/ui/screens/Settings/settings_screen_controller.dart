@@ -79,12 +79,12 @@ class SettingsScreenController extends GetxController {
     final isDesktop = GetPlatform.isDesktop;
     currentAppLanguageCode.value = setBox.get('currentAppLanguageCode') ?? "en";
     isBottomNavBarEnabled.value =
-        isDesktop ? false : (setBox.get("isBottomNavBarEnabled") ?? false);
-    noOfHomeScreenContent.value = setBox.get("noOfHomeScreenContent") ?? 3;
+        isDesktop ? false : (setBox.get("isBottomNavBarEnabled") ?? true);
+    noOfHomeScreenContent.value = setBox.get("noOfHomeScreenContent") ?? 5;
     isTransitionAnimationDisabled.value =
         setBox.get("isTransitionAnimationDisabled") ?? false;
     cacheSongs.value = setBox.get('cacheSongs') ?? false;
-    themeModetype.value = ThemeType.values[setBox.get('themeModeType') ?? 0];
+    themeModetype.value = ThemeType.values[setBox.get('themeModeType') ?? 1];
     skipSilenceEnabled.value =
         isDesktop ? false : setBox.get("skipSilenceEnabled");
     loudnessNormalizationEnabled.value = isDesktop
@@ -108,7 +108,7 @@ class SettingsScreenController extends GetxController {
     exportLocationPath.value =
         setBox.get("exportLocationPath") ?? "/storage/emulated/0/Music";
     downloadingFormat.value = setBox.get('downloadingFormat') ?? "m4a";
-    discoverContentType.value = setBox.get('discoverContentType') ?? "QP";
+    discoverContentType.value = setBox.get('discoverContentType') ?? "BOLI";
     slidableActionEnabled.value = setBox.get('slidableActionEnabled') ?? true;
     if (setBox.containsKey("piped")) {
       isLinkedWithPiped.value = setBox.get("piped")['isLoggedIn'];
@@ -120,7 +120,7 @@ class SettingsScreenController extends GetxController {
           (await Permission.ignoreBatteryOptimizations.isGranted);
     }
     autoDownloadFavoriteSongEnabled.value =
-        setBox.get("autoDownloadFavoriteSongEnabled") ?? false;
+        setBox.get("autoDownloadFavoriteSongEnabled") ?? true;
   }
 
   void setAppLanguage(String? val) {
