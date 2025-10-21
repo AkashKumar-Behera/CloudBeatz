@@ -120,7 +120,7 @@ void _setAppInitPrefs() {
   if (appPrefs.isEmpty) {
     appPrefs.putAll({
       'themeModeType': 0,
-      "cacheSongs": false,
+      "cacheSongs": true,
       "skipSilenceEnabled": false,
       'streamingQuality': 1,
       'themePrimaryColor': 4278199603,
