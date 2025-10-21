@@ -49,6 +49,7 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   ionicons: ^0.2.2
+  cupertino_icons: ^1.0.0
   jni: ^0.14.0
   just_audio: ^0.9.46
   just_audio_media_kit:

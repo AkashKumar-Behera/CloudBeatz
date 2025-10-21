@@ -82,19 +82,10 @@ class HomeScreenController extends GetxController {
           loadContentFromNetwork(silent: true);
         }
       } else {
-        try {
-          await loadContentFromNetwork();
-        } catch (_) {
-          // network failed; DB not present — keep state empty (or show fallback if you add one)
-          networkError.value = true;
-        }
+        loadContentFromNetwork();
       }
     } else {
-      try {
-        await loadContentFromNetwork();
-      } catch (_) {
-        networkError.value = true;
-      }
+      loadContentFromNetwork();
     }
   }
 
@@ -145,102 +136,57 @@ class HomeScreenController extends GetxController {
       final homeContentListMap = await _musicServices.getHome(
           limit:
               Get.find<SettingsScreenController>().noOfHomeScreenContent.value);
-
-      // Use effectiveContentType for immediate display logic
-      if (effectiveContentType == "TR") {
+      if (contentType == "TR") {
         final index = homeContentListMap
             .indexWhere((element) => element['title'] == "Trending");
         if (index != -1 && index != 0) {
-          final raw = homeContentListMap[index]["contents"];
-          quickPicks.value = QuickPicks(_toMediaItemList(raw),
+          quickPicks.value = QuickPicks(
+              List<MediaItem>.from(homeContentListMap[index]["contents"]),
               title: "Trending");
         } else if (index == -1) {
           List charts = await _musicServices.getCharts();
           final con =
               charts.length == 4 ? charts.removeAt(3) : charts.removeAt(2);
-          quickPicks.value =
-              QuickPicks(_toMediaItemList(con["contents"]), title: con['title']);
+          quickPicks.value = QuickPicks(List<MediaItem>.from(con["contents"]),
+              title: con['title']);
           middleContentTemp.addAll(charts);
         }
-      } else if (effectiveContentType == "TMV") {
+      } else if (contentType == "TMV") {
         final index = homeContentListMap
             .indexWhere((element) => element['title'] == "Top music videos");
         if (index != -1 && index != 0) {
           final con = homeContentListMap.removeAt(index);
-          quickPicks.value =
-              QuickPicks(_toMediaItemList(con["contents"]), title: con["title"]);
+          quickPicks.value = QuickPicks(List<MediaItem>.from(con["contents"]),
+              title: con["title"]);
         } else if (index == -1) {
           List charts = await _musicServices.getCharts();
           quickPicks.value = QuickPicks(
-              _toMediaItemList(charts[0]["contents"]),
+              List<MediaItem>.from(charts[0]["contents"]),
               title: charts[0]["title"]);
           middleContentTemp.addAll(charts.sublist(1));
         }
-      } else if (effectiveContentType == "BOLI") {
+      } else if (contentType == "BOLI") {
         try {
           final songId = box.get("recentSongId");
           if (songId != null) {
             final rel = (await _musicServices.getContentRelatedToSong(
                 songId, getContentHlCode()));
-
-            // if we actually got some data from server
-            if (rel.isNotEmpty) {
-              final con = rel.removeAt(0);
-              quickPicks.value = QuickPicks(_toMediaItemList(con["contents"]));
-              middleContentTemp.addAll(rel);
-            } else {
-              // fallback to Quick Picks only for display
-              print(
-                  "⚠️ No BOLI content found, showing temporary QP content...");
-              final homeFallback = await _musicServices.getHome(limit: 3);
-              final fallbackCon = homeFallback.first;
-              quickPicks.value = QuickPicks(
-                _toMediaItemList(fallbackCon["contents"]),
-                title: fallbackCon["title"],
-              );
-              middleContentTemp.addAll(homeFallback.skip(1));
-            }
-          } else {
-            // If no song history exists, fallback directly
-            print("⚠️ No recent song found, showing temporary QP content...");
-            final homeFallback = await _musicServices.getHome(limit: 3);
-            final fallbackCon = homeFallback.first;
-            quickPicks.value = QuickPicks(
-              _toMediaItemList(fallbackCon["contents"]),
-              title: fallbackCon["title"],
-            );
-            middleContentTemp.addAll(homeFallback.skip(1));
+            final con = rel.removeAt(0);
+            quickPicks.value =
+                QuickPicks(List<MediaItem>.from(con["contents"]));
+            middleContentTemp.addAll(rel);
           }
         } catch (e) {
-          printERROR("BOLI fetch failed — showing temporary QP fallback.");
-          try {
-            final homeFallback = await _musicServices.getHome(limit: 3);
-            final fallbackCon = homeFallback.first;
-            quickPicks.value = QuickPicks(
-              _toMediaItemList(fallbackCon["contents"]),
-              title: fallbackCon["title"],
-            );
-            middleContentTemp.addAll(homeFallback.skip(1));
-          } catch (_) {
-            printERROR("Fallback also failed — no content available.");
-          }
+          printERROR("Seems Based on last interaction content currently not available!");
         }
       }
 
-      // If nothing set yet for quick picks, try to find "Quick picks" section in homeContentListMap
       if (quickPicks.value.songList.isEmpty) {
         final index = homeContentListMap
             .indexWhere((element) => element['title'] == "Quick picks");
-        if (index != -1) {
-          final con = homeContentListMap.removeAt(index);
-          quickPicks.value = QuickPicks(
-            _toMediaItemList(con["contents"]),
-            title: "Quick picks",
-          );
-        } else {
-          // Safe fallback if API didn't include "Quick picks"
-          print("Quick picks section not found in homeContentListMap");
-        }
+        final con = homeContentListMap.removeAt(index);
+        quickPicks.value = QuickPicks(List<MediaItem>.from(con["contents"]),
+            title: "Quick picks");
       }
 
       middleContent.value = _setContentList(middleContentTemp);
@@ -252,18 +198,7 @@ class HomeScreenController extends GetxController {
       cachedHomeScreenData(updateAll: true);
       await Hive.box("AppPrefs")
           .put("homeScreenDataTime", DateTime.now().millisecondsSinceEpoch);
-
-      // If we deferred BOLI due to first run, fetch it after a short delay so QP visible immediately
-      if (shouldDeferBoli) {
-        Future.delayed(const Duration(seconds: 5), () async {
-          try {
-            await changeDiscoverContent("BOLI");
-            printINFO("Deferred BOLI loaded after first-run QP");
-          } catch (e) {
-            printERROR("Deferred BOLI fetch failed: $e");
-          }
-        });
-      }
+      // ignore: unused_catch_stack
     } on NetworkError catch (r, e) {
       printERROR("Home Content not loaded due to ${r.message}");
       await Future.delayed(const Duration(seconds: 1));
@@ -272,85 +207,26 @@ class HomeScreenController extends GetxController {
     }
   }
 
-  /// Robust converter — accepts raw JSON content list and converts items into
-  /// PlaylistContent / AlbumContent where appropriate.
-  List _setContentList(List<dynamic> contents) {
+  List _setContentList(
+    List<dynamic> contents,
+  ) {
     List contentTemp = [];
 
     for (var content in contents) {
-      try {
-        if (content == null) continue;
-        final title = content["title"] ?? "Untitled";
-
-        // Ensure we have a contents list
-        if (!content.containsKey("contents") || content["contents"] is! List) {
-          continue;
+      if ((content["contents"][0]).runtimeType == Playlist) {
+        final tmp = PlaylistContent(
+            playlistList: (content["contents"]).whereType<Playlist>().toList(),
+            title: content["title"]);
+        if (tmp.playlistList.length >= 2) {
+          contentTemp.add(tmp);
         }
-
-        final rawList = List<dynamic>.from(content["contents"]);
-        if (rawList.isEmpty) continue;
-
-        final first = rawList.first;
-
-        // If first is already a Playlist or Album object, handle directly
-        if (first is Playlist) {
-          final tmp = PlaylistContent(
-              playlistList: rawList.whereType<Playlist>().toList(), title: title);
-          if (tmp.playlistList.length >= 2) contentTemp.add(tmp);
-          continue;
-        } else if (first is Album) {
-          final tmp = AlbumContent(
-              albumList: rawList.whereType<Album>().toList(), title: title);
-          if (tmp.albumList.length >= 2) contentTemp.add(tmp);
-          continue;
+      } else if ((content["contents"][0]).runtimeType == Album) {
+        final tmp = AlbumContent(
+            albumList: (content["contents"]).whereType<Album>().toList(),
+            title: content["title"]);
+        if (tmp.albumList.length >= 2) {
+          contentTemp.add(tmp);
         }
-
-        // If first is a Map (raw JSON), use heuristics to decide conversion
-        if (first is Map) {
-          // If looks like playlist JSON
-          final looksLikePlaylist = first.containsKey("playlistId") ||
-              (first.containsKey("trackCount") || first.containsKey("owner")) ||
-              (first.containsKey("id") && first.containsKey("owner"));
-
-          final looksLikeAlbum = first.containsKey("albumId") ||
-              (first.containsKey("artist") && first.containsKey("album")) ||
-              first.containsKey("year");
-
-          if (looksLikePlaylist) {
-            final plList = _toPlaylistList(rawList);
-            final tmp = PlaylistContent(playlistList: plList, title: title);
-            if (tmp.playlistList.length >= 2) contentTemp.add(tmp);
-            continue;
-          }
-
-          if (looksLikeAlbum) {
-            final alList = _toAlbumList(rawList);
-            final tmp = AlbumContent(albumList: alList, title: title);
-            if (tmp.albumList.length >= 2) contentTemp.add(tmp);
-            continue;
-          }
-
-          // fallback: try playlist then album
-          final tryPl = _toPlaylistList(rawList);
-          if (tryPl.length >= 2) {
-            contentTemp.add(PlaylistContent(playlistList: tryPl, title: title));
-            continue;
-          }
-          final tryAl = _toAlbumList(rawList);
-          if (tryAl.length >= 2) {
-            contentTemp.add(AlbumContent(albumList: tryAl, title: title));
-            continue;
-          }
-
-          // unknown shape, skip gracefully
-          print("Skipping section '$title' — unknown content shape or too few items");
-        } else {
-          // unsupported type
-          print("Skipping section '$title' — unsupported item type: ${first.runtimeType}");
-        }
-      } catch (e, st) {
-        print("Error processing home content item: $e\n$st");
-        continue;
       }
     }
     return contentTemp;
@@ -360,8 +236,8 @@ class HomeScreenController extends GetxController {
     QuickPicks? quickPicks_;
     if (val == 'QP') {
       final homeContentListMap = await _musicServices.getHome(limit: 3);
-      final raw = homeContentListMap[0]["contents"];
-      quickPicks_ = QuickPicks(_toMediaItemList(raw),
+      quickPicks_ = QuickPicks(
+          List<MediaItem>.from(homeContentListMap[0]["contents"]),
           title: homeContentListMap[0]["title"]);
     } else if (val == "TMV" || val == 'TR') {
       try {
@@ -372,7 +248,7 @@ class HomeScreenController extends GetxController {
                 ? 3
                 : 2;
         quickPicks_ = QuickPicks(
-            _toMediaItemList(charts[index]["contents"]),
+            List<MediaItem>.from(charts[index]["contents"]),
             title: charts[index]["title"]);
       } catch (e) {
         printERROR(
@@ -387,7 +263,7 @@ class HomeScreenController extends GetxController {
           middleContent.value = _setContentList(value);
           if (value.isNotEmpty && (value[0]['title']).contains("like")) {
             quickPicks_ =
-                QuickPicks(_toMediaItemList(value[0]["contents"]));
+                QuickPicks(List<MediaItem>.from(value[0]["contents"]));
             Hive.box("AppPrefs").put("recentSongId", songId);
           }
           // ignore: empty_catches

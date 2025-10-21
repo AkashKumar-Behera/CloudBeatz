@@ -1,4 +1,3 @@
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:harmonymusic/ui/screens/Settings/settings_screen_controller.dart';
@@ -12,7 +11,6 @@ import '../../widgets/add_to_playlist.dart';
 import '../../widgets/sleep_timer_bottom_sheet.dart';
 import '../../widgets/song_download_btn.dart';
 import '../../widgets/image_widget.dart';
-import '../../widgets/mini_player_progress_bar.dart';
 import 'animated_play_button.dart';
 
 class MiniPlayer extends StatelessWidget {
@@ -77,15 +75,17 @@ class MiniPlayer extends StatelessWidget {
                         controller.seek(Duration(milliseconds: seekMs));
                       },
                       child: LayoutBuilder(builder: (context, constraints) {
-                        final barHeight = 4.0;
+                        const double barHeight = 5.0;
                         final width = constraints.maxWidth;
-                        final playedWidth = (width * fraction).clamp(0.0, width);
+                        final playedWidth =
+                            (width * fraction).clamp(0.0, width);
                         final theme = Theme.of(context);
-                        final playedColor = theme.progressIndicatorTheme.color ??
-                            theme.colorScheme.primary;
-                        final remainingColor =
-                            theme.sliderTheme.inactiveTrackColor ??
-                                theme.colorScheme.background.withOpacity(0.6);
+                        final playedColor =
+                            theme.progressIndicatorTheme.color ??
+                                theme.colorScheme.primary;
+                        final remainingColor = theme
+                                .sliderTheme.inactiveTrackColor ??
+                            theme.colorScheme.surface.withValues(alpha: 0.5);
 
                         return Container(
                           width: double.infinity,
@@ -135,7 +135,7 @@ class MiniPlayer extends StatelessWidget {
                                   decoration: BoxDecoration(
                                     color: theme.colorScheme.secondary,
                                     shape: BoxShape.circle,
-                                    boxShadow: [
+                                    boxShadow: const [
                                       BoxShadow(
                                           color: Colors.black26,
                                           blurRadius: 3,
@@ -209,10 +209,8 @@ class MiniPlayer extends StatelessWidget {
                                   SizedBox(
                                     height: 20,
                                     child: Marquee(
-                                      id:
-                                          "${playerController.currentSong.value}_mini",
-                                      delay:
-                                          const Duration(milliseconds: 300),
+                                      id: "${playerController.currentSong.value}_mini",
+                                      delay: const Duration(milliseconds: 300),
                                       duration: const Duration(seconds: 5),
                                       child: Text(
                                         playerController.currentSong.value !=
@@ -272,7 +270,7 @@ class MiniPlayer extends StatelessWidget {
                                                       .textTheme
                                                       .titleLarge!
                                                       .color!
-                                                      .withOpacity(0.2),
+                                                      .withValues(alpha: 0.2),
                                             ))),
                                   ],
                                 ),
@@ -343,7 +341,7 @@ class MiniPlayer extends StatelessWidget {
                                                 .textTheme
                                                 .titleLarge!
                                                 .color!
-                                                .withOpacity(0.2)
+                                                .withValues(alpha: 0.2)
                                             : Theme.of(context)
                                                 .textTheme
                                                 .titleMedium!
@@ -371,7 +369,7 @@ class MiniPlayer extends StatelessWidget {
                                                   .textTheme
                                                   .titleLarge!
                                                   .color!
-                                                  .withOpacity(0.2),
+                                                  .withValues(alpha: 0.2),
                                         )),
                                     IconButton(
                                         iconSize: 20,
@@ -420,7 +418,8 @@ class MiniPlayer extends StatelessWidget {
                                     height: 20,
                                     width: (size.width > 860) ? 220 : 180,
                                     child: Obx(() {
-                                      final volume = playerController.volume.value;
+                                      final volume =
+                                          playerController.volume.value;
                                       return Row(
                                         children: [
                                           SizedBox(
@@ -451,7 +450,9 @@ class MiniPlayer extends StatelessWidget {
                                                         overlayRadius: 10.0),
                                               ),
                                               child: Slider(
-                                                value: playerController.volume.value / 100,
+                                                value: playerController
+                                                        .volume.value /
+                                                    100,
                                                 onChanged: (value) {
                                                   playerController.setVolume(
                                                       (value * 100).toInt());
@@ -470,7 +471,8 @@ class MiniPlayer extends StatelessWidget {
                                       children: [
                                         IconButton(
                                           onPressed: () {
-                                            playerController.homeScaffoldkey.currentState!
+                                            playerController
+                                                .homeScaffoldkey.currentState!
                                                 .openEndDrawer();
                                           },
                                           icon: const Icon(Icons.queue_music),
@@ -528,8 +530,10 @@ class MiniPlayer extends StatelessWidget {
                                               showDialog(
                                                 context: context,
                                                 builder: (context) =>
-                                                    AddToPlaylist([currentSong]),
-                                              ).whenComplete(() => Get.delete<AddToPlaylistController>());
+                                                    AddToPlaylist(
+                                                        [currentSong]),
+                                              ).whenComplete(() => Get.delete<
+                                                  AddToPlaylistController>());
                                             }
                                           },
                                           icon: const Icon(Icons.playlist_add),
@@ -538,7 +542,8 @@ class MiniPlayer extends StatelessWidget {
                                           IconButton(
                                             onPressed: () {
                                               final currentSong =
-                                                  playerController.currentSong.value;
+                                                  playerController
+                                                      .currentSong.value;
                                               if (currentSong != null) {
                                                 showDialog(
                                                   context: context,
