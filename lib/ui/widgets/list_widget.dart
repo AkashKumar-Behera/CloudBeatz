@@ -97,12 +97,22 @@ class ListWidget extends StatelessWidget with RemoveSongFromPlaylistMixin {
         song: items[index] as MediaItem,
         onTap: () {
           isArtistSongs
+              // if song is from artist then play from artist
               ? playerController.playPlayListSong(
                   List<MediaItem>.from(items), index,
                   playfrom: PlaylingFrom(
                       type: PlaylingFromType.ARTIST,
                       name: artist?.name ?? "........."))
-              : playerController.pushSongToQueue(items[index] as MediaItem);
+              :
+              // if playlist is not null then play from playlist else play from album
+              playlist != null && album == null
+                  ? playerController.playPlayListSong(
+                      List<MediaItem>.from(items), index,
+                      playfrom: PlaylingFrom(
+                        type: PlaylingFromType.PLAYLIST,
+                        name: playlist.title,
+                      ))
+                  : playerController.pushSongToQueue(items[index] as MediaItem);
         },
       ),
     );
@@ -140,9 +150,12 @@ class ListWidget extends StatelessWidget with RemoveSongFromPlaylistMixin {
           physics: const BouncingScrollPhysics(),
           itemBuilder: (context, index) {
             String artistName = "";
-            for (dynamic items in (albums[index].artists).sublist(1)) {
-              artistName = "${artistName + items['name']},";
-            }
+            try {
+              for (dynamic items in (albums[index].artists).sublist(1)) {
+                artistName = "${artistName + items['name']},";
+              }
+            // ignore: empty_catches
+            } catch (e) {}
             artistName = artistName.length > 16
                 ? artistName.substring(0, 16)
                 : artistName;
@@ -150,8 +163,9 @@ class ListWidget extends StatelessWidget with RemoveSongFromPlaylistMixin {
                 album: albums[index],
                 title: albums[index].title,
                 subtitle: artistName,
-                subtitle2:
-                    "${(albums[index].artists[0]['name'])} • ${albums[index].year}");
+                subtitle2: albums[index].artists.isEmpty
+                    ? "${albums[index].year}"
+                    : "${(albums[index].artists[0]['name'])} • ${albums[index].year}");
           }),
     );
   }
@@ -203,7 +217,7 @@ class ListWidget extends StatelessWidget with RemoveSongFromPlaylistMixin {
       onTap: () {
         if (album != null) {
           Get.toNamed(ScreenNavigationSetup.albumScreen,
-              id: ScreenNavigationSetup.id, arguments: album.browseId);
+              id: ScreenNavigationSetup.id, arguments: (album, album.browseId));
         } else {
           Get.toNamed(ScreenNavigationSetup.playlistScreen,
               id: ScreenNavigationSetup.id,

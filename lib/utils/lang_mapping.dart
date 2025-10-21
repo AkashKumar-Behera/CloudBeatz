@@ -19,14 +19,15 @@ const langMap = {
   "ga": "Irish",
   "gl": "Galician",
   "hi": "Hindi",
+  "hr": "Croatian",
   "hu": "Hungarian",
   "ia": "Interlingua",
   "id": "Indonesian",
   "it": "Italian",
   "ja": "Japanese",
+  "km": "Khmer(Central)",
   "kn": "Kannada",
   "ko": "Korean",
-  "ku": "Kurdish",
   "ml": "Malayalam",
   "my": "Burmese",
   "nb_NO": "Norwegian",
@@ -46,6 +47,6 @@ const langMap = {
   "uk": "Ukrainian",
   "ur": "Urdu",
   "vi": "Vietnamese",
-  "zh_Hans": "Chinese",
-  "zh_Hant": "Chinese(Trad.)"
+  "zh-CN": "Chinese",
+  "zh-TW": "Chinese(Trad.)"
 };

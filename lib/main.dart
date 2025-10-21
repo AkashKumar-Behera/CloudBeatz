@@ -28,6 +28,7 @@ Future<void> main() async {
   _setAppInitPrefs();
   startApplicationServices();
   Get.put<AudioHandler>(await initAudioService(), permanent: true);
+  WidgetsBinding.instance.addObserver(LifecycleHandler());
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   TerminateRestart.instance.initialize();
   runApp(const MyApp());
@@ -41,16 +42,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!GetPlatform.isDesktop) Get.put(AppLinksController());
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChannels.lifecycle.setMessageHandler((msg) async {
-      if (msg == "AppLifecycleState.resumed") {
-        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-      } else if (msg == "AppLifecycleState.detached") {
-        await Get.find<AudioHandler>().customAction("saveSession");
-      }
-      return null;
-    });
     return GetMaterialApp(
-        title: 'Cloud Beatz',
+        title: 'CloudBeatz',
         home: const Home(),
         debugShowCheckedModeBanner: false,
         translations: Languages(),
@@ -131,9 +124,20 @@ void _setAppInitPrefs() {
       "skipSilenceEnabled": false,
       'streamingQuality': 1,
       'themePrimaryColor': 4278199603,
-      'discoverContentType': "QP",
+      'discoverContentType': "BOLI",
       'newVersionVisibility': updateCheckFlag,
       "cacheHomeScreenData": true
     });
+  }
+}
+
+class LifecycleHandler extends WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state == AppLifecycleState.resumed) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    } else if (state == AppLifecycleState.detached) {
+      await Get.find<AudioHandler>().customAction("saveSession");
+    }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:harmonymusic/ui/screens/Settings/settings_screen_controller.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:widget_marquee/widget_marquee.dart';
 
@@ -22,6 +23,9 @@ class MiniPlayer extends StatelessWidget {
     final playerController = Get.find<PlayerController>();
     final size = MediaQuery.of(context).size;
     final isWideScreen = size.width > 800;
+    final bottomNavEnabled =
+        Get.find<SettingsScreenController>().isBottomNavBarEnabled.isTrue;
+
     return Obx(() {
       return Visibility(
         visible: playerController.isPlayerpanelTopVisible.value,
@@ -35,52 +39,118 @@ class MiniPlayer extends StatelessWidget {
             child: Center(
               child: Column(
                 children: [
-                  !isWideScreen
-                      ? GetX<PlayerController>(
-                          builder: (controller) => Container(
-                              height: 3,
-                              color: Theme.of(context)
-                                  .progressIndicatorTheme
-                                  .color,
-                              child: MiniPlayerProgressBar(
-                                  progressBarStatus:
-                                      controller.progressBarStatus.value,
-                                  progressBarColor: Theme.of(context)
-                                          .progressIndicatorTheme
-                                          .linearTrackColor ??
-                                      Colors.white)),
-                        )
-                      : GetX<PlayerController>(builder: (controller) {
-                          return Padding(
-                            padding: const EdgeInsets.only(
-                                left: 15.0, top: 8, right: 15, bottom: 0),
-                            child: ProgressBar(
-                              timeLabelLocation: TimeLabelLocation.sides,
-                              thumbRadius: 7,
-                              barHeight: 4,
-                              thumbGlowRadius: 15,
-                              baseBarColor: Theme.of(context)
-                                  .sliderTheme
-                                  .inactiveTrackColor,
-                              bufferedBarColor: Theme.of(context)
-                                  .sliderTheme
-                                  .valueIndicatorColor,
-                              progressBarColor: Theme.of(context)
-                                  .sliderTheme
-                                  .activeTrackColor,
-                              thumbColor:
-                                  Theme.of(context).sliderTheme.thumbColor,
-                              timeLabelTextStyle:
-                                  Theme.of(context).textTheme.titleMedium,
-                              progress:
-                                  controller.progressBarStatus.value.current,
-                              total: controller.progressBarStatus.value.total,
-                              buffered:
-                                  controller.progressBarStatus.value.buffered,
-                              onSeek: controller.seek,
-                            ),
-                          );
-                        }),
+                  // ---------- CUSTOM FULL-WIDTH PROGRESS BAR ON TOP ----------
+                  // This is the modified progress UI: one full-width bar across top of mini player.
+                  // Left side = played (lighter), Right side = remaining (darker), vertical divider shows current pos.
+                  GetX<PlayerController>(builder: (controller) {
+                    final status = controller.progressBarStatus.value;
+                    final total = status.total;
+                    final current = status.current;
+                    // protect against zero or null
+                    final totalMs =
+                        (total.inMilliseconds <= 0) ? 1 : total.inMilliseconds;
+                    final currentMs =
+                        current.inMilliseconds.clamp(0, totalMs).toInt();
+                    final fraction = currentMs / totalMs;
+
+                    return GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTapDown: (details) {
+                        // Seek to tapped position
+                        final box = context.findRenderObject() as RenderBox?;
+                        if (box == null) return;
+                        final local = box.globalToLocal(details.globalPosition);
+                        final width = box.size.width;
+                        final dx = local.dx.clamp(0.0, width);
+                        final tappedFraction = dx / width;
+                        final seekMs = (tappedFraction * totalMs).toInt();
+                        controller.seek(Duration(milliseconds: seekMs));
+                      },
+                      onHorizontalDragUpdate: (details) {
+                        final box = context.findRenderObject() as RenderBox?;
+                        if (box == null) return;
+                        final local = box.globalToLocal(details.globalPosition);
+                        final width = box.size.width;
+                        final dx = local.dx.clamp(0.0, width);
+                        final draggedFraction = dx / width;
+                        final seekMs = (draggedFraction * totalMs).toInt();
+                        controller.seek(Duration(milliseconds: seekMs));
+                      },
+                      child: LayoutBuilder(builder: (context, constraints) {
+                        final barHeight = 4.0;
+                        final width = constraints.maxWidth;
+                        final playedWidth = (width * fraction).clamp(0.0, width);
+                        final theme = Theme.of(context);
+                        final playedColor = theme.progressIndicatorTheme.color ??
+                            theme.colorScheme.primary;
+                        final remainingColor =
+                            theme.sliderTheme.inactiveTrackColor ??
+                                theme.colorScheme.background.withOpacity(0.6);
+
+                        return Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 0.0),
+                          color: Colors.transparent,
+                          child: Stack(
+                            alignment: Alignment.centerLeft,
+                            children: [
+                              // background remaining bar
+                              Container(
+                                height: barHeight,
+                                width: width,
+                                decoration: BoxDecoration(
+                                  color: remainingColor,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                              // played bar (animated)
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 250),
+                                height: barHeight,
+                                width: playedWidth,
+                                decoration: BoxDecoration(
+                                  color: playedColor,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                              // vertical divider / current position indicator
+                              Positioned(
+                                left: (playedWidth - 1).clamp(0.0, width - 1),
+                                child: Container(
+                                  height: barHeight + 6,
+                                  width: 2,
+                                  decoration: BoxDecoration(
+                                    color: theme.textTheme.titleMedium?.color ??
+                                        Colors.white,
+                                    borderRadius: BorderRadius.circular(1),
+                                  ),
+                                ),
+                              ),
+                              // small draggable thumb (optional) - visually subtle
+                              Positioned(
+                                left: (playedWidth - 6).clamp(0.0, width - 12),
+                                child: Container(
+                                  height: 12,
+                                  width: 12,
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.secondary,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                          color: Colors.black26,
+                                          blurRadius: 3,
+                                          offset: Offset(0, 1))
+                                    ],
+                                  ),
+                                ),
+                              )
+                            ],
+                          ),
+                        );
+                      }),
+                    );
+                  }),
+                  // ---------- END custom progress bar ----------
                   Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 17.0, vertical: 7),
@@ -139,8 +209,10 @@ class MiniPlayer extends StatelessWidget {
                                   SizedBox(
                                     height: 20,
                                     child: Marquee(
-                                      id: "${playerController.currentSong.value}_mini",
-                                      delay: const Duration(milliseconds: 300),
+                                      id:
+                                          "${playerController.currentSong.value}_mini",
+                                      delay:
+                                          const Duration(milliseconds: 300),
                                       duration: const Duration(seconds: 5),
                                       child: Text(
                                         playerController.currentSong.value !=
@@ -162,11 +234,11 @@ class MiniPlayer extends StatelessWidget {
                         ),
                         //player control
                         SizedBox(
-                          width: isWideScreen ? 450 : 90,
+                          width: isWideScreen && !bottomNavEnabled ? 450 : 90,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              if (isWideScreen)
+                              if (isWideScreen && !bottomNavEnabled)
                                 Row(
                                   children: [
                                     IconButton(
@@ -204,7 +276,7 @@ class MiniPlayer extends StatelessWidget {
                                             ))),
                                   ],
                                 ),
-                              if (isWideScreen)
+                              if (isWideScreen && !bottomNavEnabled)
                                 SizedBox(
                                     width: 40,
                                     child: InkWell(
@@ -225,7 +297,7 @@ class MiniPlayer extends StatelessWidget {
                                         size: 35,
                                       ),
                                     )),
-                              isWideScreen
+                              isWideScreen && !bottomNavEnabled
                                   ? Container(
                                       decoration: BoxDecoration(
                                           color: Theme.of(context)
@@ -280,7 +352,7 @@ class MiniPlayer extends StatelessWidget {
                                       ),
                                     );
                                   })),
-                              if (isWideScreen)
+                              if (isWideScreen && !bottomNavEnabled)
                                 Row(
                                   children: [
                                     IconButton(
@@ -326,14 +398,14 @@ class MiniPlayer extends StatelessWidget {
                                                 .color)),
                                   ],
                                 ),
-                              if (isWideScreen)
+                              if (isWideScreen && !bottomNavEnabled)
                                 const SizedBox(
                                   width: 20,
                                 )
                             ],
                           ),
                         ),
-                        if (isWideScreen)
+                        if (isWideScreen && !bottomNavEnabled)
                           Expanded(
                             child: Padding(
                               padding: EdgeInsets.only(
@@ -348,8 +420,7 @@ class MiniPlayer extends StatelessWidget {
                                     height: 20,
                                     width: (size.width > 860) ? 220 : 180,
                                     child: Obx(() {
-                                      final volume =
-                                          playerController.volume.value;
+                                      final volume = playerController.volume.value;
                                       return Row(
                                         children: [
                                           SizedBox(
@@ -380,9 +451,7 @@ class MiniPlayer extends StatelessWidget {
                                                         overlayRadius: 10.0),
                                               ),
                                               child: Slider(
-                                                value: playerController
-                                                        .volume.value /
-                                                    100,
+                                                value: playerController.volume.value / 100,
                                                 onChanged: (value) {
                                                   playerController.setVolume(
                                                       (value * 100).toInt());
@@ -401,8 +470,7 @@ class MiniPlayer extends StatelessWidget {
                                       children: [
                                         IconButton(
                                           onPressed: () {
-                                            playerController
-                                                .homeScaffoldkey.currentState!
+                                            playerController.homeScaffoldkey.currentState!
                                                 .openEndDrawer();
                                           },
                                           icon: const Icon(Icons.queue_music),
@@ -460,10 +528,8 @@ class MiniPlayer extends StatelessWidget {
                                               showDialog(
                                                 context: context,
                                                 builder: (context) =>
-                                                    AddToPlaylist(
-                                                        [currentSong]),
-                                              ).whenComplete(() => Get.delete<
-                                                  AddToPlaylistController>());
+                                                    AddToPlaylist([currentSong]),
+                                              ).whenComplete(() => Get.delete<AddToPlaylistController>());
                                             }
                                           },
                                           icon: const Icon(Icons.playlist_add),
@@ -472,8 +538,7 @@ class MiniPlayer extends StatelessWidget {
                                           IconButton(
                                             onPressed: () {
                                               final currentSong =
-                                                  playerController
-                                                      .currentSong.value;
+                                                  playerController.currentSong.value;
                                               if (currentSong != null) {
                                                 showDialog(
                                                   context: context,

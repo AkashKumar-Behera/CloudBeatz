@@ -2,6 +2,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
+import 'dart:async';
 
 import '/models/media_Item_builder.dart';
 import '/ui/player/player_controller.dart';
@@ -35,6 +36,36 @@ class HomeScreenController extends GetxController {
     if (updateCheckFlag) _checkNewVersion();
   }
 
+  /// Helper: convert raw list -> List<MediaItem>
+  List<MediaItem> _toMediaItemList(dynamic raw) {
+    if (raw is! List) return [];
+    return raw.map<MediaItem>((e) {
+      if (e is MediaItem) return e;
+      if (e is Map) return MediaItemBuilder.fromJson(e);
+      throw Exception("Unsupported MediaItem type: ${e.runtimeType}");
+    }).toList();
+  }
+
+  /// Helper: convert dynamic list -> List<Playlist>
+  List<Playlist> _toPlaylistList(dynamic raw) {
+    if (raw is! List) return [];
+    return raw.map<Playlist>((e) {
+      if (e is Playlist) return e;
+      if (e is Map) return Playlist.fromJson(e);
+      throw Exception("Unsupported Playlist type: ${e.runtimeType}");
+    }).whereType<Playlist>().toList();
+  }
+
+  /// Helper: convert dynamic list -> List<Album>
+  List<Album> _toAlbumList(dynamic raw) {
+    if (raw is! List) return [];
+    return raw.map<Album>((e) {
+      if (e is Album) return e;
+      if (e is Map) return Album.fromJson(e);
+      throw Exception("Unsupported Album type: ${e.runtimeType}");
+    }).whereType<Album>().toList();
+  }
+
   Future<void> loadContent() async {
     final box = Hive.box("AppPrefs");
     final isCachedHomeScreenDataEnabled =
@@ -47,13 +78,23 @@ class HomeScreenController extends GetxController {
             (box.get("homeScreenDataTime") ??
                 DateTime.now().millisecondsSinceEpoch);
         if (currTimeSecsDiff / 1000 > 3600 * 8) {
+          // silent refresh from network
           loadContentFromNetwork(silent: true);
         }
       } else {
-        loadContentFromNetwork();
+        try {
+          await loadContentFromNetwork();
+        } catch (_) {
+          // network failed; DB not present — keep state empty (or show fallback if you add one)
+          networkError.value = true;
+        }
       }
     } else {
-      loadContentFromNetwork();
+      try {
+        await loadContentFromNetwork();
+      } catch (_) {
+        networkError.value = true;
+      }
     }
   }
 
@@ -85,9 +126,18 @@ class HomeScreenController extends GetxController {
     }
   }
 
+  /// Main network loader — now supports first-run QP behaviour:
+  /// - If first run and user preference is BOLI, it will show QP immediately (effectiveContentType = QP)
+  /// - Then, it schedules a deferred BOLI fetch after 5 seconds which replaces QP when available.
   Future<void> loadContentFromNetwork({bool silent = false}) async {
     final box = Hive.box("AppPrefs");
+    final prefsBox = Hive.box("AppPrefs");
+    final bool isFirstRun = (prefsBox.get("homeScreenDataTime") == null);
     String contentType = box.get("discoverContentType") ?? "QP";
+
+    // If first run & discover pref is BOLI, defer BOLI and show QP first.
+    final bool shouldDeferBoli = isFirstRun && contentType == "BOLI";
+    final String effectiveContentType = shouldDeferBoli ? "QP" : contentType;
 
     networkError.value = false;
     try {
@@ -95,51 +145,102 @@ class HomeScreenController extends GetxController {
       final homeContentListMap = await _musicServices.getHome(
           limit:
               Get.find<SettingsScreenController>().noOfHomeScreenContent.value);
-      if (contentType == "TR") {
+
+      // Use effectiveContentType for immediate display logic
+      if (effectiveContentType == "TR") {
         final index = homeContentListMap
             .indexWhere((element) => element['title'] == "Trending");
         if (index != -1 && index != 0) {
-          quickPicks.value = QuickPicks(
-              List<MediaItem>.from(homeContentListMap[index]["contents"]),
+          final raw = homeContentListMap[index]["contents"];
+          quickPicks.value = QuickPicks(_toMediaItemList(raw),
               title: "Trending");
         } else if (index == -1) {
           List charts = await _musicServices.getCharts();
           final con =
               charts.length == 4 ? charts.removeAt(3) : charts.removeAt(2);
-          quickPicks.value = QuickPicks(List<MediaItem>.from(con["contents"]),
-              title: con['title']);
+          quickPicks.value =
+              QuickPicks(_toMediaItemList(con["contents"]), title: con['title']);
           middleContentTemp.addAll(charts);
         }
-      } else if (contentType == "TMV") {
+      } else if (effectiveContentType == "TMV") {
         final index = homeContentListMap
             .indexWhere((element) => element['title'] == "Top music videos");
         if (index != -1 && index != 0) {
           final con = homeContentListMap.removeAt(index);
-          quickPicks.value = QuickPicks(List<MediaItem>.from(con["contents"]),
-              title: con["title"]);
+          quickPicks.value =
+              QuickPicks(_toMediaItemList(con["contents"]), title: con["title"]);
         } else if (index == -1) {
           List charts = await _musicServices.getCharts();
           quickPicks.value = QuickPicks(
-              List<MediaItem>.from(charts[0]["contents"]),
+              _toMediaItemList(charts[0]["contents"]),
               title: charts[0]["title"]);
           middleContentTemp.addAll(charts.sublist(1));
         }
-      } else if (contentType == "BOLI") {
-        final songId = box.get("recentSongId");
-        if (songId != null) {
-          final rel = (await _musicServices.getContentRelatedToSong(songId));
-          final con = rel.removeAt(0);
-          quickPicks.value = QuickPicks(List<MediaItem>.from(con["contents"]));
-          middleContentTemp.addAll(rel);
+      } else if (effectiveContentType == "BOLI") {
+        try {
+          final songId = box.get("recentSongId");
+          if (songId != null) {
+            final rel = (await _musicServices.getContentRelatedToSong(
+                songId, getContentHlCode()));
+
+            // if we actually got some data from server
+            if (rel.isNotEmpty) {
+              final con = rel.removeAt(0);
+              quickPicks.value = QuickPicks(_toMediaItemList(con["contents"]));
+              middleContentTemp.addAll(rel);
+            } else {
+              // fallback to Quick Picks only for display
+              print(
+                  "⚠️ No BOLI content found, showing temporary QP content...");
+              final homeFallback = await _musicServices.getHome(limit: 3);
+              final fallbackCon = homeFallback.first;
+              quickPicks.value = QuickPicks(
+                _toMediaItemList(fallbackCon["contents"]),
+                title: fallbackCon["title"],
+              );
+              middleContentTemp.addAll(homeFallback.skip(1));
+            }
+          } else {
+            // If no song history exists, fallback directly
+            print("⚠️ No recent song found, showing temporary QP content...");
+            final homeFallback = await _musicServices.getHome(limit: 3);
+            final fallbackCon = homeFallback.first;
+            quickPicks.value = QuickPicks(
+              _toMediaItemList(fallbackCon["contents"]),
+              title: fallbackCon["title"],
+            );
+            middleContentTemp.addAll(homeFallback.skip(1));
+          }
+        } catch (e) {
+          printERROR("BOLI fetch failed — showing temporary QP fallback.");
+          try {
+            final homeFallback = await _musicServices.getHome(limit: 3);
+            final fallbackCon = homeFallback.first;
+            quickPicks.value = QuickPicks(
+              _toMediaItemList(fallbackCon["contents"]),
+              title: fallbackCon["title"],
+            );
+            middleContentTemp.addAll(homeFallback.skip(1));
+          } catch (_) {
+            printERROR("Fallback also failed — no content available.");
+          }
         }
       }
 
+      // If nothing set yet for quick picks, try to find "Quick picks" section in homeContentListMap
       if (quickPicks.value.songList.isEmpty) {
         final index = homeContentListMap
             .indexWhere((element) => element['title'] == "Quick picks");
-        final con = homeContentListMap.removeAt(index);
-        quickPicks.value = QuickPicks(List<MediaItem>.from(con["contents"]),
-            title: "Quick picks");
+        if (index != -1) {
+          final con = homeContentListMap.removeAt(index);
+          quickPicks.value = QuickPicks(
+            _toMediaItemList(con["contents"]),
+            title: "Quick picks",
+          );
+        } else {
+          // Safe fallback if API didn't include "Quick picks"
+          print("Quick picks section not found in homeContentListMap");
+        }
       }
 
       middleContent.value = _setContentList(middleContentTemp);
@@ -151,33 +252,105 @@ class HomeScreenController extends GetxController {
       cachedHomeScreenData(updateAll: true);
       await Hive.box("AppPrefs")
           .put("homeScreenDataTime", DateTime.now().millisecondsSinceEpoch);
-      // ignore: unused_catch_stack
+
+      // If we deferred BOLI due to first run, fetch it after a short delay so QP visible immediately
+      if (shouldDeferBoli) {
+        Future.delayed(const Duration(seconds: 5), () async {
+          try {
+            await changeDiscoverContent("BOLI");
+            printINFO("Deferred BOLI loaded after first-run QP");
+          } catch (e) {
+            printERROR("Deferred BOLI fetch failed: $e");
+          }
+        });
+      }
     } on NetworkError catch (r, e) {
       printERROR("Home Content not loaded due to ${r.message}");
       await Future.delayed(const Duration(seconds: 1));
       networkError.value = !silent;
+      // do not rethrow — caller already handles fallback in loadContent
     }
   }
 
-  List _setContentList(
-    List<dynamic> contents,
-  ) {
+  /// Robust converter — accepts raw JSON content list and converts items into
+  /// PlaylistContent / AlbumContent where appropriate.
+  List _setContentList(List<dynamic> contents) {
     List contentTemp = [];
+
     for (var content in contents) {
-      if ((content["contents"][0]).runtimeType == Playlist) {
-        final tmp = PlaylistContent(
-            playlistList: (content["contents"]).whereType<Playlist>().toList(),
-            title: content["title"]);
-        if (tmp.playlistList.length >= 2) {
-          contentTemp.add(tmp);
+      try {
+        if (content == null) continue;
+        final title = content["title"] ?? "Untitled";
+
+        // Ensure we have a contents list
+        if (!content.containsKey("contents") || content["contents"] is! List) {
+          continue;
         }
-      } else if ((content["contents"][0]).runtimeType == Album) {
-        final tmp = AlbumContent(
-            albumList: (content["contents"]).whereType<Album>().toList(),
-            title: content["title"]);
-        if (tmp.albumList.length >= 2) {
-          contentTemp.add(tmp);
+
+        final rawList = List<dynamic>.from(content["contents"]);
+        if (rawList.isEmpty) continue;
+
+        final first = rawList.first;
+
+        // If first is already a Playlist or Album object, handle directly
+        if (first is Playlist) {
+          final tmp = PlaylistContent(
+              playlistList: rawList.whereType<Playlist>().toList(), title: title);
+          if (tmp.playlistList.length >= 2) contentTemp.add(tmp);
+          continue;
+        } else if (first is Album) {
+          final tmp = AlbumContent(
+              albumList: rawList.whereType<Album>().toList(), title: title);
+          if (tmp.albumList.length >= 2) contentTemp.add(tmp);
+          continue;
         }
+
+        // If first is a Map (raw JSON), use heuristics to decide conversion
+        if (first is Map) {
+          // If looks like playlist JSON
+          final looksLikePlaylist = first.containsKey("playlistId") ||
+              (first.containsKey("trackCount") || first.containsKey("owner")) ||
+              (first.containsKey("id") && first.containsKey("owner"));
+
+          final looksLikeAlbum = first.containsKey("albumId") ||
+              (first.containsKey("artist") && first.containsKey("album")) ||
+              first.containsKey("year");
+
+          if (looksLikePlaylist) {
+            final plList = _toPlaylistList(rawList);
+            final tmp = PlaylistContent(playlistList: plList, title: title);
+            if (tmp.playlistList.length >= 2) contentTemp.add(tmp);
+            continue;
+          }
+
+          if (looksLikeAlbum) {
+            final alList = _toAlbumList(rawList);
+            final tmp = AlbumContent(albumList: alList, title: title);
+            if (tmp.albumList.length >= 2) contentTemp.add(tmp);
+            continue;
+          }
+
+          // fallback: try playlist then album
+          final tryPl = _toPlaylistList(rawList);
+          if (tryPl.length >= 2) {
+            contentTemp.add(PlaylistContent(playlistList: tryPl, title: title));
+            continue;
+          }
+          final tryAl = _toAlbumList(rawList);
+          if (tryAl.length >= 2) {
+            contentTemp.add(AlbumContent(albumList: tryAl, title: title));
+            continue;
+          }
+
+          // unknown shape, skip gracefully
+          print("Skipping section '$title' — unknown content shape or too few items");
+        } else {
+          // unsupported type
+          print("Skipping section '$title' — unsupported item type: ${first.runtimeType}");
+        }
+      } catch (e, st) {
+        print("Error processing home content item: $e\n$st");
+        continue;
       }
     }
     return contentTemp;
@@ -187,8 +360,8 @@ class HomeScreenController extends GetxController {
     QuickPicks? quickPicks_;
     if (val == 'QP') {
       final homeContentListMap = await _musicServices.getHome(limit: 3);
-      quickPicks_ = QuickPicks(
-          List<MediaItem>.from(homeContentListMap[0]["contents"]),
+      final raw = homeContentListMap[0]["contents"];
+      quickPicks_ = QuickPicks(_toMediaItemList(raw),
           title: homeContentListMap[0]["title"]);
     } else if (val == "TMV" || val == 'TR') {
       try {
@@ -199,7 +372,7 @@ class HomeScreenController extends GetxController {
                 ? 3
                 : 2;
         quickPicks_ = QuickPicks(
-            List<MediaItem>.from(charts[index]["contents"]),
+            _toMediaItemList(charts[index]["contents"]),
             title: charts[index]["title"]);
       } catch (e) {
         printERROR(
@@ -209,11 +382,12 @@ class HomeScreenController extends GetxController {
       songId ??= Hive.box("AppPrefs").get("recentSongId");
       if (songId != null) {
         try {
-          final value = await _musicServices.getContentRelatedToSong(songId);
+          final value = await _musicServices.getContentRelatedToSong(
+              songId, getContentHlCode());
           middleContent.value = _setContentList(value);
           if (value.isNotEmpty && (value[0]['title']).contains("like")) {
             quickPicks_ =
-                QuickPicks(List<MediaItem>.from(value[0]["contents"]));
+                QuickPicks(_toMediaItemList(value[0]["contents"]));
             Hive.box("AppPrefs").put("recentSongId", songId);
           }
           // ignore: empty_catches
@@ -228,6 +402,13 @@ class HomeScreenController extends GetxController {
     cachedHomeScreenData(updateQuickPicksNMiddleContent: true);
     await Hive.box("AppPrefs")
         .put("homeScreenDataTime", DateTime.now().millisecondsSinceEpoch);
+  }
+
+  String getContentHlCode() {
+    const List<String> unsupportedLangIds = ["ia", "ga", "fj", "eo"];
+    final userLangId =
+        Get.find<SettingsScreenController>().currentAppLanguageCode.value;
+    return unsupportedLangIds.contains(userLangId) ? "en" : userLangId;
   }
 
   void onSideBarTabSelected(int index) {
@@ -260,7 +441,9 @@ class HomeScreenController extends GetxController {
     showVersionDialog.value = !val;
   }
 
-  ///this fn only useful if bottom nav enabled
+  ///This is used to minimized bottom navigation bar by setting [isHomeSreenOnTop.value] to `true` and set mini player height.
+  ///
+  ///and applicable/useful if bottom nav enabled
   void whenHomeScreenOnTop() {
     if (Get.find<SettingsScreenController>().isBottomNavBarEnabled.isTrue) {
       final currentRoute = getCurrentRouteName();

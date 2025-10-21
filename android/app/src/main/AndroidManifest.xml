@@ -1,13 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools">
    <application
-        android:label="Cloud Beatz"
-        android:name="${applicationName}"
-        android:icon="@drawable/ic_launcher"
+        android:label="cloudbeatz"
+        android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true"
         android:requestLegacyExternalStorage="true">
         <activity
-            android:name="com.ryanheise.audioservice.AudioServiceActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleInstance"
             android:theme="@style/LaunchTheme"
@@ -42,8 +41,6 @@
                 <data android:scheme="https" android:host="youtu.be" />
                 <data android:scheme="https" android:host="youtube.com"/>
             </intent-filter>
-            
-
 
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

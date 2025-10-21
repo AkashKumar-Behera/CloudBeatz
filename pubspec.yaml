@@ -1,5 +1,5 @@
 name: harmonymusic
-description: A app for music streaming.
+description: A cross platform app for music streaming.
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
@@ -16,7 +16,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.11.2+24
+version: 1.12.1+26
 
 environment:
   sdk: ">=3.1.5 <4.0.0"
@@ -54,7 +54,7 @@ dependencies:
   just_audio_media_kit:
     git:
       url: https://github.com/anandnet/just_audio_media_kit.git
-      ref: 06de226da469f5c55dd780b215bcc45a0d6269fb
+      ref: 6672eb82657d9e671abbf42122031c88aa9e6d80
   palette_generator: ^0.3.3+4
   path: ^1.8.3
   path_provider: ^2.1.1
@@ -92,23 +92,6 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   jnigen: ^0.14.0
-
-  flutter_launcher_icons: ^0.14.3
-  flutter_native_splash: ^2.3.8
-
-flutter_native_splash:
-  color: "#000000" # Splash background color
-  image: assets/icons/icon.png # Your custom logo path
-  android: true
-  ios: false
-
-flutter_icons:
-  android: true
-  ios: true
-  image_path: "assets/icons/icon.png"  # Replace with your actual icon path
-  adaptive_icon_background: "#ffffff"  # ya background image path bhi de sakte ho
-  adaptive_icon_foreground: "assets/icons/icon.png"
-
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
