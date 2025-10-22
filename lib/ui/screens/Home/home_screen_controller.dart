@@ -1,10 +1,9 @@
-// ignore_for_file: unused_element, unused_local_variable
+// ignore_for_file: avoid_print
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
-import 'dart:async';
 
 import '/models/media_Item_builder.dart';
 import '/ui/player/player_controller.dart';
@@ -38,36 +37,6 @@ class HomeScreenController extends GetxController {
     if (updateCheckFlag) _checkNewVersion();
   }
 
-  /// Helper: convert raw list -> List<MediaItem>
-  List<MediaItem> _toMediaItemList(dynamic raw) {
-    if (raw is! List) return [];
-    return raw.map<MediaItem>((e) {
-      if (e is MediaItem) return e;
-      if (e is Map) return MediaItemBuilder.fromJson(e);
-      throw Exception("Unsupported MediaItem type: ${e.runtimeType}");
-    }).toList();
-  }
-
-  /// Helper: convert dynamic list -> List<Playlist>
-  List<Playlist> _toPlaylistList(dynamic raw) {
-    if (raw is! List) return [];
-    return raw.map<Playlist>((e) {
-      if (e is Playlist) return e;
-      if (e is Map) return Playlist.fromJson(e);
-      throw Exception("Unsupported Playlist type: ${e.runtimeType}");
-    }).whereType<Playlist>().toList();
-  }
-
-  /// Helper: convert dynamic list -> List<Album>
-  List<Album> _toAlbumList(dynamic raw) {
-    if (raw is! List) return [];
-    return raw.map<Album>((e) {
-      if (e is Album) return e;
-      if (e is Map) return Album.fromJson(e);
-      throw Exception("Unsupported Album type: ${e.runtimeType}");
-    }).whereType<Album>().toList();
-  }
-
   Future<void> loadContent() async {
     final box = Hive.box("AppPrefs");
     final isCachedHomeScreenDataEnabled =
@@ -80,7 +49,6 @@ class HomeScreenController extends GetxController {
             (box.get("homeScreenDataTime") ??
                 DateTime.now().millisecondsSinceEpoch);
         if (currTimeSecsDiff / 1000 > 3600 * 8) {
-          // silent refresh from network
           loadContentFromNetwork(silent: true);
         }
       } else {
@@ -119,18 +87,9 @@ class HomeScreenController extends GetxController {
     }
   }
 
-  /// Main network loader — now supports first-run QP behaviour:
-  /// - If first run and user preference is BOLI, it will show QP immediately (effectiveContentType = QP)
-  /// - Then, it schedules a deferred BOLI fetch after 5 seconds which replaces QP when available.
   Future<void> loadContentFromNetwork({bool silent = false}) async {
     final box = Hive.box("AppPrefs");
-    final prefsBox = Hive.box("AppPrefs");
-    final bool isFirstRun = (prefsBox.get("homeScreenDataTime") == null);
     String contentType = box.get("discoverContentType") ?? "QP";
-
-    // If first run & discover pref is BOLI, defer BOLI and show QP first.
-    final bool shouldDeferBoli = isFirstRun && contentType == "BOLI";
-    final String effectiveContentType = shouldDeferBoli ? "QP" : contentType;
 
     networkError.value = false;
     try {
@@ -173,15 +132,50 @@ class HomeScreenController extends GetxController {
           if (songId != null) {
             final rel = (await _musicServices.getContentRelatedToSong(
                 songId, getContentHlCode()));
-            final con = rel.removeAt(0);
-            quickPicks.value =
-                QuickPicks(List<MediaItem>.from(con["contents"]));
-            middleContentTemp.addAll(rel);
+
+            // if we actually got some data from server
+            if (rel.isNotEmpty) {
+              final con = rel.removeAt(0);
+              quickPicks.value = QuickPicks(List<MediaItem>.from(con["contents"]));
+              middleContentTemp.addAll(rel);
+            } else {
+              // fallback to Quick Picks only for display
+              print("⚠️ No BOLI content found, showing temporary QP content...");
+              final homeFallback = await _musicServices.getHome(limit: 3);
+              final fallbackCon = homeFallback.first;
+              quickPicks.value = QuickPicks(
+                List<MediaItem>.from(fallbackCon["contents"]),
+                title: fallbackCon["title"],
+              );
+              middleContentTemp.addAll(homeFallback.skip(1));
+            }
+          } else {
+            // If no song history exists, fallback directly
+            print("⚠️ No recent song found, showing temporary QP content...");
+            final homeFallback = await _musicServices.getHome(limit: 3);
+            final fallbackCon = homeFallback.first;
+            quickPicks.value = QuickPicks(
+              List<MediaItem>.from(fallbackCon["contents"]),
+              title: fallbackCon["title"],
+            );
+            middleContentTemp.addAll(homeFallback.skip(1));
           }
         } catch (e) {
-          printERROR("Seems Based on last interaction content currently not available!");
+          printERROR("BOLI fetch failed — showing temporary QP fallback.");
+          try {
+            final homeFallback = await _musicServices.getHome(limit: 3);
+            final fallbackCon = homeFallback.first;
+            quickPicks.value = QuickPicks(
+              List<MediaItem>.from(fallbackCon["contents"]),
+              title: fallbackCon["title"],
+            );
+            middleContentTemp.addAll(homeFallback.skip(1));
+          } catch (_) {
+            printERROR("Fallback also failed — no content available.");
+          }
         }
       }
+
 
       if (quickPicks.value.songList.isEmpty) {
         final index = homeContentListMap
@@ -205,7 +199,6 @@ class HomeScreenController extends GetxController {
       printERROR("Home Content not loaded due to ${r.message}");
       await Future.delayed(const Duration(seconds: 1));
       networkError.value = !silent;
-      // do not rethrow — caller already handles fallback in loadContent
     }
   }
 
@@ -213,7 +206,6 @@ class HomeScreenController extends GetxController {
     List<dynamic> contents,
   ) {
     List contentTemp = [];
-
     for (var content in contents) {
       if ((content["contents"][0]).runtimeType == Playlist) {
         final tmp = PlaylistContent(
