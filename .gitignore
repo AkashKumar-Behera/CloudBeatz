@@ -70,3 +70,4 @@ android/app/.cxx/Debug/*
 
 /android/app/.cxx
 
+linux/flutter/generated_plugin_registrant.h
