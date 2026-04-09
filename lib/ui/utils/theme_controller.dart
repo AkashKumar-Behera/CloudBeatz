@@ -5,11 +5,15 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive/hive.dart';
 import 'package:palette_generator/palette_generator.dart';
+import '/utils/helper.dart';
 
 class ThemeController extends GetxController {
   final primaryColor = Colors.deepPurple[400].obs;
   final textColor = Colors.white24.obs;
   final themedata = Rxn<ThemeData>();
+
+  /// The method channel for setting the title bar color on Windows.
+  final platform = const MethodChannel('win_titlebar_color');
   String? currentSongId;
   late Brightness systemBrightness;
 
@@ -53,6 +57,7 @@ class ThemeController extends GetxController {
               : null,
           value);
     }
+    setWindowsTitleBarColor(themedata.value!.scaffoldBackgroundColor);
   }
 
   void setTheme(ImageProvider imageProvider, String songId) async {
@@ -78,6 +83,7 @@ class ThemeController extends GetxController {
         titleColorSwatch: _createMaterialColor(textColor.value));
     currentSongId = songId;
     Hive.box('appPrefs').put("themePrimaryColor", (primaryColor.value!).value);
+    setWindowsTitleBarColor(themedata.value!.scaffoldBackgroundColor);
   }
 
   ThemeData _createThemeData(MaterialColor? primarySwatch, ThemeType themeType,
@@ -102,6 +108,8 @@ class ThemeController extends GetxController {
               brightness: Brightness.dark,
               backgroundColor: primarySwatch[700],
               primarySwatch: primarySwatch),
+          //accentColor: primarySwatch[200],
+          dialogBackgroundColor: primarySwatch[700],
           cardColor: primarySwatch[600],
           primaryColorLight: primarySwatch[400],
           primaryColorDark: primarySwatch[700],
@@ -155,8 +163,7 @@ class ThemeController extends GetxController {
           textSelectionTheme: TextSelectionThemeData(
               cursorColor: primarySwatch[200],
               selectionColor: primarySwatch[200],
-              selectionHandleColor: primarySwatch[200]),
-          dialogTheme: DialogThemeData(backgroundColor: primarySwatch[700])
+              selectionHandleColor: primarySwatch[200])
           //scaffoldBackgroundColor: primarySwatch[700]
           );
       return baseTheme.copyWith(
@@ -325,6 +332,21 @@ class ThemeController extends GetxController {
       );
     }
     return MaterialColor(color.value, swatch);
+  }
+
+  Future<void> setWindowsTitleBarColor(Color color) async {
+    if (!GetPlatform.isWindows) return;
+    try {
+      Future.delayed(
+          const Duration(milliseconds: 350),
+          () async => await platform.invokeMethod('setTitleBarColor', {
+                'r': color.red,
+                'g': color.green,
+                'b': color.blue,
+              }));
+    } on PlatformException catch (e) {
+      printERROR("Failed to set title bar color: ${e.message}");
+    }
   }
 }
 

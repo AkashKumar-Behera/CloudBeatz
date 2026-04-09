@@ -196,7 +196,7 @@ class GesturePlayer extends StatelessWidget {
                                                     .textTheme
                                                     .titleLarge!
                                                     .color!
-                                                    .withOpacity(0.2),
+                                                    .withValues(alpha: 0.2),
                                           ));
                                     }),
                                     IconButton(
@@ -219,7 +219,7 @@ class GesturePlayer extends StatelessWidget {
                                                   .textTheme
                                                   .titleLarge!
                                                   .color!
-                                                  .withOpacity(0.2),
+                                                  .withValues(alpha: 0.2),
                                         ),
                                       ),
                                     ),

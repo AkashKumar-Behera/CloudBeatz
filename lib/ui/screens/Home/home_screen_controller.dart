@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -125,14 +127,55 @@ class HomeScreenController extends GetxController {
           middleContentTemp.addAll(charts.sublist(1));
         }
       } else if (contentType == "BOLI") {
-        final songId = box.get("recentSongId");
-        if (songId != null) {
-          final rel = (await _musicServices.getContentRelatedToSong(songId));
-          final con = rel.removeAt(0);
-          quickPicks.value = QuickPicks(List<MediaItem>.from(con["contents"]));
-          middleContentTemp.addAll(rel);
+        try {
+          final songId = box.get("recentSongId");
+          if (songId != null) {
+            final rel = (await _musicServices.getContentRelatedToSong(
+                songId, getContentHlCode()));
+
+            // if we actually got some data from server
+            if (rel.isNotEmpty) {
+              final con = rel.removeAt(0);
+              quickPicks.value = QuickPicks(List<MediaItem>.from(con["contents"]));
+              middleContentTemp.addAll(rel);
+            } else {
+              // fallback to Quick Picks only for display
+              print("⚠️ No BOLI content found, showing temporary QP content...");
+              final homeFallback = await _musicServices.getHome(limit: 3);
+              final fallbackCon = homeFallback.first;
+              quickPicks.value = QuickPicks(
+                List<MediaItem>.from(fallbackCon["contents"]),
+                title: fallbackCon["title"],
+              );
+              middleContentTemp.addAll(homeFallback.skip(1));
+            }
+          } else {
+            // If no song history exists, fallback directly
+            print("⚠️ No recent song found, showing temporary QP content...");
+            final homeFallback = await _musicServices.getHome(limit: 3);
+            final fallbackCon = homeFallback.first;
+            quickPicks.value = QuickPicks(
+              List<MediaItem>.from(fallbackCon["contents"]),
+              title: fallbackCon["title"],
+            );
+            middleContentTemp.addAll(homeFallback.skip(1));
+          }
+        } catch (e) {
+          printERROR("BOLI fetch failed — showing temporary QP fallback.");
+          try {
+            final homeFallback = await _musicServices.getHome(limit: 3);
+            final fallbackCon = homeFallback.first;
+            quickPicks.value = QuickPicks(
+              List<MediaItem>.from(fallbackCon["contents"]),
+              title: fallbackCon["title"],
+            );
+            middleContentTemp.addAll(homeFallback.skip(1));
+          } catch (_) {
+            printERROR("Fallback also failed — no content available.");
+          }
         }
       }
+
 
       if (quickPicks.value.songList.isEmpty) {
         final index = homeContentListMap
@@ -209,7 +252,8 @@ class HomeScreenController extends GetxController {
       songId ??= Hive.box("AppPrefs").get("recentSongId");
       if (songId != null) {
         try {
-          final value = await _musicServices.getContentRelatedToSong(songId);
+          final value = await _musicServices.getContentRelatedToSong(
+              songId, getContentHlCode());
           middleContent.value = _setContentList(value);
           if (value.isNotEmpty && (value[0]['title']).contains("like")) {
             quickPicks_ =
@@ -228,6 +272,13 @@ class HomeScreenController extends GetxController {
     cachedHomeScreenData(updateQuickPicksNMiddleContent: true);
     await Hive.box("AppPrefs")
         .put("homeScreenDataTime", DateTime.now().millisecondsSinceEpoch);
+  }
+
+  String getContentHlCode() {
+    const List<String> unsupportedLangIds = ["ia", "ga", "fj", "eo"];
+    final userLangId =
+        Get.find<SettingsScreenController>().currentAppLanguageCode.value;
+    return unsupportedLangIds.contains(userLangId) ? "en" : userLangId;
   }
 
   void onSideBarTabSelected(int index) {
@@ -260,7 +311,9 @@ class HomeScreenController extends GetxController {
     showVersionDialog.value = !val;
   }
 
-  ///this fn only useful if bottom nav enabled
+  ///This is used to minimized bottom navigation bar by setting [isHomeSreenOnTop.value] to `true` and set mini player height.
+  ///
+  ///and applicable/useful if bottom nav enabled
   void whenHomeScreenOnTop() {
     if (Get.find<SettingsScreenController>().isBottomNavBarEnabled.isTrue) {
       final currentRoute = getCurrentRouteName();

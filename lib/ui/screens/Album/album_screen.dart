@@ -95,6 +95,20 @@ class AlbumScreen extends StatelessWidget {
                                       : BoxFit.fitWidth,
                                   width: landscape ? null : size.width,
                                   height: landscape ? size.height : null,
+                                  // placeholder: (context, n) => Align(
+                                  //   alignment:landscape?Alignment.centerLeft: Alignment.topCenter,
+                                  //   child: SizedBox(
+                                  //     width: landscape ? size.height : size.width,
+                                  //     height: landscape ? size.height : size.width,
+                                  //     child: Center(
+                                  //       child: Icon(Icons.album,
+                                  //           size: 150,
+                                  //           color: Theme.of(context)
+                                  //               .textTheme.titleSmall!.color
+                                  //         ),
+                                  //     ),
+                                  //   ),
+                                  // ),
                                 )));
                       }))
                   : SizedBox(
@@ -116,6 +130,7 @@ class AlbumScreen extends StatelessWidget {
                         SizedBox(
                           width: 50,
                           child: IconButton(
+                              tooltip: "back".tr,
                               onPressed: () {
                                 Navigator.of(context).pop();
                               },
@@ -166,13 +181,19 @@ class AlbumScreen extends StatelessWidget {
                             itemBuilder: (_, index) {
                               if (index == 0) {
                                 return Padding(
-                                  padding: const EdgeInsets.only(left: 15.0),
+                                  padding: EdgeInsets.only(
+                                      left:
+                                          GetPlatform.isDesktop ? 15.0 : 10.0),
                                   child: SizedBox(
                                       height: 40,
                                       child: Row(
                                         children: [
                                           // Bookmark button
                                           Obx(() => IconButton(
+                                            tooltip: albumController
+                                                      .isAddedToLibrary.isFalse
+                                                  ? "addToLibrary".tr
+                                                  : "removeFromLibrary".tr,
                                               splashRadius: 10,
                                               onPressed: () {
                                                 final add = albumController
@@ -206,6 +227,7 @@ class AlbumScreen extends StatelessWidget {
                                                   : Icons.bookmark_added))),
                                           // Play button
                                           IconButton(
+                                            tooltip: "play".tr,
                                               onPressed: () {
                                                 playerController
                                                     .playPlayListSong(
@@ -232,6 +254,7 @@ class AlbumScreen extends StatelessWidget {
                                               )),
                                           // Enqueue button
                                           IconButton(
+                                            tooltip: "enqueueAlbumSongs".tr,
                                               onPressed: () {
                                                 Get.find<PlayerController>()
                                                     .enqueueSongList(
@@ -264,6 +287,7 @@ class AlbumScreen extends StatelessWidget {
                                             final id = albumController
                                                 .album.value.browseId;
                                             return IconButton(
+                                              tooltip: "downloadAlbumSongs".tr,
                                               onPressed: () {
                                                 if (albumController
                                                     .isDownloaded.isTrue) {
@@ -339,6 +363,7 @@ class AlbumScreen extends StatelessWidget {
                                           //           Icons.cloud_sync)),
 
                                           IconButton(
+                                            tooltip: "shareAlbum".tr,
                                               visualDensity:
                                                   const VisualDensity(
                                                       vertical: -3),
@@ -355,67 +380,13 @@ class AlbumScreen extends StatelessWidget {
                                       )),
                                 );
                               } else if (index == 1) {
-                                final title = albumController.album.value.title;
-                                final description =
-                                    albumController.album.value.description;
-                                final artists = albumController
-                                        .album.value.artists
-                                        ?.map((e) => e['name'])
-                                        .join(", ") ??
-                                    "";
-                                return Padding(
-                                  padding: const EdgeInsets.only(
-                                      left: 25.0, bottom: 10, right: 30),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Marquee(
-                                        delay:
-                                            const Duration(milliseconds: 300),
-                                        duration: const Duration(seconds: 5),
-                                        id: title.hashCode.toString(),
-                                        child: Text(
-                                          title.length > 50
-                                              ? title.substring(0, 50)
-                                              : title,
-                                          maxLines: 1,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleLarge!
-                                              .copyWith(fontSize: 30),
-                                        ),
-                                      ),
-                                      Text(
-                                        description ?? "",
-                                        maxLines: 1,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium,
-                                      ),
-                                      Padding(
-                                        padding:
-                                            const EdgeInsets.only(top: 8.0),
-                                        child: Marquee(
-                                          delay:
-                                              const Duration(milliseconds: 300),
-                                          duration: const Duration(seconds: 5),
-                                          id: artists.hashCode.toString(),
-                                          child: Text(
-                                            artists,
-                                            maxLines: 1,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleSmall,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
+                                return buildTitleSubTitle(
+                                    context, albumController);
                               } else if (index == 2) {
                                 return SizedBox(
-                                    height: 60,
+                                    height: albumController.isSearchingOn.isTrue
+                                        ? 60
+                                        : 40,
                                     child: Padding(
                                       padding: const EdgeInsets.only(
                                           left: 15.0, right: 10),
@@ -496,6 +467,64 @@ class AlbumScreen extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildTitleSubTitle(
+      BuildContext context, AlbumScreenController albumController) {
+    final title = albumController.album.value.title;
+    final description = albumController.album.value.description;
+    final artists =
+        albumController.album.value.artists?.map((e) => e['name']).join(", ") ??
+            "";
+    return AnimatedBuilder(
+      animation: albumController.animationController,
+      builder: (context, child) {
+        return SizedBox(
+          height: albumController.heightAnimation.value,
+          child: Transform.scale(
+              scale: albumController.scaleAnimation.value, child: child),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(left: 25.0, bottom: 10, right: 30),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Marquee(
+              delay: const Duration(milliseconds: 300),
+              duration: const Duration(seconds: 5),
+              id: title.hashCode.toString(),
+              child: Text(
+                title.length > 50 ? title.substring(0, 50) : title,
+                maxLines: 1,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge!
+                    .copyWith(fontSize: 30),
+              ),
+            ),
+            Text(
+              description ?? "",
+              maxLines: 1,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Marquee(
+                delay: const Duration(milliseconds: 300),
+                duration: const Duration(seconds: 5),
+                id: artists.hashCode.toString(),
+                child: Text(
+                  artists,
+                  maxLines: 1,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ),
             ),
           ],
         ),

@@ -11,7 +11,6 @@ import '../../widgets/backup_dialog.dart';
 import '../../widgets/restore_dialog.dart';
 import '../Library/library_controller.dart';
 import '../../widgets/snackbar.dart';
-import '/ui/widgets/link_piped.dart';
 import '/services/music_service.dart';
 import '/ui/player/player_controller.dart';
 import '/ui/utils/theme_controller.dart';
@@ -57,7 +56,7 @@ class SettingsScreen extends StatelessWidget {
                             onTap: () {
                               launchUrl(
                                 Uri.parse(
-                                  'https://github.com/anandnet/Harmony-Music/releases/latest',
+                                  'https://github.com/akash/cloudbeatzdownload/releases/latest',
                                 ),
                                 mode: LaunchMode.externalApplication,
                               );
@@ -260,34 +259,6 @@ class SettingsScreen extends StatelessWidget {
                               onChanged:
                                   settingsController.toggleCacheHomeScreenData),
                         )),
-                    ListTile(
-                      contentPadding:
-                          const EdgeInsets.only(left: 5, right: 10, top: 0),
-                      title: Text("Piped".tr),
-                      subtitle: Text("linkPipedDes".tr,
-                          style: Theme.of(context).textTheme.bodyMedium),
-                      trailing: TextButton(
-                          child: Obx(() => Text(
-                                settingsController.isLinkedWithPiped.value
-                                    ? "unLink".tr
-                                    : "link".tr,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium!
-                                    .copyWith(fontSize: 15),
-                              )),
-                          onPressed: () {
-                            if (settingsController.isLinkedWithPiped.isFalse) {
-                              showDialog(
-                                context: context,
-                                builder: (context) => const LinkPiped(),
-                              ).whenComplete(
-                                  () => Get.delete<PipedLinkedController>());
-                            } else {
-                              settingsController.unlinkPiped();
-                            }
-                          }),
-                    ),
                     Obx(() => (settingsController.isLinkedWithPiped.isTrue)
                         ? ListTile(
                             contentPadding: const EdgeInsets.only(
@@ -650,21 +621,21 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ]),
               CustomExpansionTile(
-                icon: Icons.info,
-                title: "appInfo".tr,
+                icon: Icons.language,
+                title: "Official Website".tr,
                 children: [
                   ListTile(
                     contentPadding: const EdgeInsets.only(left: 5, right: 10),
-                    title: Text("GitHub".tr),
+                    title: Text("Visit CloudBeatz".tr),
                     subtitle: Text(
-                      "${"githubDes".tr}${((Get.find<PlayerController>().playerPanelMinHeight.value) == 0 || !isBottomNavActive) ? "" : "\n\n${settingsController.currentVersion} ${"by".tr} AkashKumar-Behera"}",
+                      "${"githubDes".tr}${((Get.find<PlayerController>().playerPanelMinHeight.value) == 0 || !isBottomNavActive) ? "" : "\n\n${settingsController.currentVersion} ${"by".tr} Akash"}",
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     isThreeLine: true,
                     onTap: () {
                       launchUrl(
                         Uri.parse(
-                          'https://github.com/AkashKumar-Behera/CloudBeatz',
+                          'https://cloudbeatz.web.app/',
                         ),
                         mode: LaunchMode.externalApplication,
                       );
@@ -675,10 +646,10 @@ class SettingsScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         Text(
-                          "Cloud Music",
+                          "CloudBeatz",
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
-                        Text("v1.2.0",
+                        Text(settingsController.currentVersion,
                             style: Theme.of(context).textTheme.titleMedium)
                       ],
                     ),
@@ -690,7 +661,7 @@ class SettingsScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 20.0),
             child: Text(
-              "${settingsController.currentVersion} ${"by".tr} AkashKumar-Behera",
+              "${settingsController.currentVersion} ${"by".tr} Akash",
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),

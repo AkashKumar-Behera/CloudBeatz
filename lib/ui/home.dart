@@ -135,7 +135,7 @@ class Home extends StatelessWidget {
                                                           .isFalse
                                                       ? Colors.white24
                                                       : Colors.white
-                                                          .withOpacity(0.8),
+                                                          .withValues(alpha: 0.8),
                                                   borderRadius:
                                                       BorderRadius.circular(20),
                                                 ),
