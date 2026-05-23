@@ -471,7 +471,7 @@ String? getTabBrowseId(Map<String, dynamic> watchNextRenderer, int tabId) {
       }
     }
   } catch (e) {
-    printERROR("Error getting tab browse ID: $e");
+    print("Error getting tab browse ID: $e");
   }
   return null;
 }
