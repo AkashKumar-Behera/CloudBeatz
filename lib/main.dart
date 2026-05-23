@@ -43,7 +43,7 @@ class MyApp extends StatelessWidget {
     if (!GetPlatform.isDesktop) Get.put(AppLinksController());
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     return GetMaterialApp(
-        title: 'Harmony Music',
+        title: 'CloudBeatz',
         home: const Home(),
         debugShowCheckedModeBanner: false,
         translations: Languages(),
@@ -120,11 +120,11 @@ void _setAppInitPrefs() {
   if (appPrefs.isEmpty) {
     appPrefs.putAll({
       'themeModeType': 0,
-      "cacheSongs": false,
+      "cacheSongs": true,
       "skipSilenceEnabled": false,
       'streamingQuality': 1,
       'themePrimaryColor': 4278199603,
-      'discoverContentType': "QP",
+      'discoverContentType': "BOLI",
       'newVersionVisibility': updateCheckFlag,
       "cacheHomeScreenData": true
     });
