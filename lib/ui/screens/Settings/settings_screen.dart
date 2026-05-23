@@ -159,7 +159,7 @@ class SettingsScreen extends StatelessWidget {
                                 value: 0, child: Text("standard".tr)),
                             DropdownMenuItem(
                               value: 1,
-                              child: Text("gesture".tr),
+                              child: Text("modern".tr),
                             ),
                           ],
                           onChanged: settingsController.setPlayerUi,
