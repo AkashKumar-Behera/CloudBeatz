@@ -10,6 +10,7 @@ import 'package:widget_marquee/widget_marquee.dart';
 
 import '../../widgets/songinfo_bottom_sheet.dart';
 import '../../utils/theme_controller.dart';
+import '../../screens/Settings/settings_screen_controller.dart';
 import '../player_controller.dart';
 
 class GesturePlayer extends StatelessWidget {
@@ -244,20 +245,28 @@ class GesturePlayer extends StatelessWidget {
                           children: [
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                              child: SquigglySlider(
-                                value: currentVal,
-                                min: 0.0,
-                                max: maxVal,
-                                activeColor: Theme.of(context).sliderTheme.activeTrackColor,
-                                inactiveColor: Theme.of(context).sliderTheme.inactiveTrackColor,
-                                thumbColor: Theme.of(context).sliderTheme.thumbColor,
-                                squiggleAmplitude: isPlaying ? 3.5 : 0.0,
-                                squiggleWavelength: 5.0,
-                                squiggleSpeed: isPlaying ? 0.05 : 0.0,
-                                onChanged: (value) {
-                                  controller.seek(Duration(milliseconds: value.toInt()));
-                                },
-                              ),
+                                child: Obx(() {
+                                  final sc = Get.find<SettingsScreenController>();
+                                  final wavyEnabled = sc.squigglySliderEnabled.value;
+                                  final amplitude = sc.squigglyAmplitude.value;
+                                  final wavelength = sc.squigglyWavelength.value;
+                                  final speed = sc.squigglySpeed.value;
+                                  return SquigglySlider(
+                                    key: ValueKey('${wavyEnabled}_${isPlaying}_${amplitude}_${wavelength}_${speed}'),
+                                    value: currentVal,
+                                    min: 0.0,
+                                    max: maxVal,
+                                    activeColor: Theme.of(context).sliderTheme.activeTrackColor,
+                                    inactiveColor: Theme.of(context).sliderTheme.inactiveTrackColor,
+                                    thumbColor: Theme.of(context).sliderTheme.thumbColor,
+                                    squiggleAmplitude: wavyEnabled && isPlaying ? amplitude : 0.0,
+                                    squiggleWavelength: wavelength,
+                                    squiggleSpeed: wavyEnabled && isPlaying ? speed : 0.0,
+                                    onChanged: (value) {
+                                      controller.seek(Duration(milliseconds: value.toInt()));
+                                    },
+                                  );
+                                }),
                             ),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 22.0),
