@@ -591,16 +591,19 @@ class _LyricsMenuButton extends StatelessWidget {
               Icon(Icons.sync_rounded,
                   size: 18,
                   color: mode == 0
-                      ? Theme.of(context).colorScheme.primary
+                      ? Colors.white
                       : Theme.of(context).textTheme.bodyMedium?.color),
               const SizedBox(width: 8),
               Text("showSyncedLyrics".tr,
-                  style: mode == 0
-                      ? TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.bold)
-                      : null),
-              if (mode == 0) ...[const Spacer(), const Icon(Icons.check, size: 16)],
+                  style: TextStyle(
+                      color: mode == 0
+                          ? Colors.white
+                          : Theme.of(context).textTheme.bodyMedium?.color,
+                      fontWeight: mode == 0 ? FontWeight.bold : FontWeight.normal)),
+              if (mode == 0) ...[
+                const Spacer(),
+                const Icon(Icons.check, size: 16, color: Colors.white)
+              ],
             ]),
           ),
           PopupMenuItem(
@@ -609,16 +612,19 @@ class _LyricsMenuButton extends StatelessWidget {
               Icon(Icons.text_fields_rounded,
                   size: 18,
                   color: mode == 1
-                      ? Theme.of(context).colorScheme.primary
+                      ? Colors.white
                       : Theme.of(context).textTheme.bodyMedium?.color),
               const SizedBox(width: 8),
               Text("showPlainLyrics".tr,
-                  style: mode == 1
-                      ? TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.bold)
-                      : null),
-              if (mode == 1) ...[const Spacer(), const Icon(Icons.check, size: 16)],
+                  style: TextStyle(
+                      color: mode == 1
+                          ? Colors.white
+                          : Theme.of(context).textTheme.bodyMedium?.color,
+                      fontWeight: mode == 1 ? FontWeight.bold : FontWeight.normal)),
+              if (mode == 1) ...[
+                const Spacer(),
+                const Icon(Icons.check, size: 16, color: Colors.white)
+              ],
             ]),
           ),
           const PopupMenuDivider(),
@@ -628,6 +634,14 @@ class _LyricsMenuButton extends StatelessWidget {
               const Icon(Icons.edit_rounded, size: 18),
               const SizedBox(width: 8),
               Text("editLyrics".tr),
+            ]),
+          ),
+          PopupMenuItem(
+            value: 'timestamp',
+            child: Row(children: [
+              const Icon(Icons.timer_rounded, size: 18),
+              const SizedBox(width: 8),
+              Text("searchWithTimestamp".tr),
             ]),
           ),
           PopupMenuItem(
@@ -666,6 +680,9 @@ class _LyricsMenuButton extends StatelessWidget {
             case 'edit':
               _showInlineEditor(context);
               break;
+            case 'timestamp':
+              _showTimestampEditor(context);
+              break;
           }
         },
       );
@@ -699,6 +716,23 @@ class _LyricsMenuButton extends StatelessWidget {
       ),
     );
   }
+
+  void _showTimestampEditor(BuildContext context) {
+    final currentSynced = pc.lyrics['synced'] ?? '';
+    final textController =
+        TextEditingController(text: currentSynced == 'NA' ? '' : currentSynced);
+
+    showModalBottomSheet(
+      context: pc.homeScaffoldkey.currentState!.context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _LyricsInlineEditor(
+        controller: textController,
+        pc: pc,
+        title: "searchWithTimestamp".tr,
+      ),
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -707,9 +741,10 @@ class _LyricsMenuButton extends StatelessWidget {
 class _LyricsInlineEditor extends StatelessWidget {
   final TextEditingController controller;
   final PlayerController pc;
+  final String? title;
 
   const _LyricsInlineEditor(
-      {required this.controller, required this.pc});
+      {required this.controller, required this.pc, this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -741,7 +776,7 @@ class _LyricsInlineEditor extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'editLyrics'.tr,
+                      title ?? 'editLyrics'.tr,
                       style: Theme.of(context)
                           .textTheme
                           .titleMedium!
@@ -765,11 +800,24 @@ class _LyricsInlineEditor extends StatelessWidget {
                     ),
                     onPressed: () {
                       final newText = controller.text.trim();
-                      pc.lyrics.value = {
-                        'synced': '',
-                        'plainLyrics': newText.isEmpty ? 'NA' : newText,
-                      };
-                      pc.changeLyricsMode(1);
+                      final hasTimestamps = RegExp(r'\[\d+:\d+').hasMatch(newText);
+                      if (hasTimestamps) {
+                        final cleanText = newText
+                            .split('\n')
+                            .map((line) => line.replaceAll(RegExp(r'\[\d+:\d+(?:\.\d+)?\]'), '').trim())
+                            .join('\n');
+                        pc.lyrics.value = {
+                          'synced': newText,
+                          'plainLyrics': cleanText.isEmpty ? 'NA' : cleanText,
+                        };
+                        pc.changeLyricsMode(0);
+                      } else {
+                        pc.lyrics.value = {
+                          'synced': '',
+                          'plainLyrics': newText.isEmpty ? 'NA' : newText,
+                        };
+                        pc.changeLyricsMode(1);
+                      }
                       Navigator.pop(context);
                     },
                     child: Text('save'.tr),
