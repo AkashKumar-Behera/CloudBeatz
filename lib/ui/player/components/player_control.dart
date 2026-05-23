@@ -1,4 +1,4 @@
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
+import 'package:squiggly_slider/slider.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -93,22 +93,48 @@ class PlayerControlWidget extends StatelessWidget {
             height: 20,
           ),
           GetX<PlayerController>(builder: (controller) {
-            return ProgressBar(
-              thumbRadius: 7,
-              barHeight: 4.5,
-              baseBarColor: Theme.of(context).sliderTheme.inactiveTrackColor,
-              bufferedBarColor:
-                  Theme.of(context).sliderTheme.valueIndicatorColor,
-              progressBarColor: Theme.of(context).sliderTheme.activeTrackColor,
-              thumbColor: Theme.of(context).sliderTheme.thumbColor,
-              timeLabelTextStyle: Theme.of(context)
-                  .textTheme
-                  .titleMedium!
-                  .copyWith(fontSize: 14),
-              progress: controller.progressBarStatus.value.current,
-              total: controller.progressBarStatus.value.total,
-              buffered: controller.progressBarStatus.value.buffered,
-              onSeek: controller.seek,
+            final isPlaying = controller.buttonState.value == PlayButtonState.playing;
+            final maxMs = controller.progressBarStatus.value.total.inMilliseconds.toDouble();
+            final currentMs = controller.progressBarStatus.value.current.inMilliseconds.toDouble();
+            final maxVal = maxMs > 0 ? maxMs : 1.0;
+            final currentVal = currentMs.clamp(0.0, maxVal);
+
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: SquigglySlider(
+                    value: currentVal,
+                    min: 0.0,
+                    max: maxVal,
+                    activeColor: Theme.of(context).sliderTheme.activeTrackColor,
+                    inactiveColor: Theme.of(context).sliderTheme.inactiveTrackColor,
+                    thumbColor: Theme.of(context).sliderTheme.thumbColor,
+                    squiggleAmplitude: isPlaying ? 3.5 : 0.0,
+                    squiggleWavelength: 5.0,
+                    squiggleSpeed: isPlaying ? 0.05 : 0.0,
+                    onChanged: (value) {
+                      controller.seek(Duration(milliseconds: value.toInt()));
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 22.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _formatDuration(controller.progressBarStatus.value.current),
+                        style: Theme.of(context).textTheme.titleMedium!.copyWith(fontSize: 12),
+                      ),
+                      Text(
+                        _formatDuration(controller.progressBarStatus.value.total),
+                        style: Theme.of(context).textTheme.titleMedium!.copyWith(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             );
           }),
           Row(
@@ -160,6 +186,13 @@ class PlayerControlWidget extends StatelessWidget {
       iconSize: 30,
       onPressed: playerController.prev,
     );
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds.remainder(60);
+    return "$minutes:${twoDigits(seconds)}";
   }
 }
 
