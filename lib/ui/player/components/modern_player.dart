@@ -218,56 +218,86 @@ class ModernPlayer extends StatelessWidget {
                 ),
               ),
 
-              // ── Footer bar ───────────────────────────────────────────────
-              SizedBox(height: bottomPad > 0 ? 4 : 10),
-              Padding(
-                padding: EdgeInsets.only(
-                    left: 28,
-                    right: 28,
-                    bottom: bottomPad > 0 ? bottomPad : 14),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 500),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Obx(() => _FooterIconBtn(
-                            icon: Icons.all_inclusive_rounded,
-                            active: pc.isLoopModeEnabled.value,
-                            onTap: pc.toggleLoopMode,
-                          )),
-                      Obx(() => _FooterIconBtn(
-                            icon: Icons.shuffle_rounded,
-                            active: pc.isShuffleModeEnabled.value,
-                            onTap: pc.toggleShuffleMode,
-                          )),
-                      Obx(() => _FooterIconBtn(
-                            icon: pc.isCurrentSongFav.isFalse
-                                ? Icons.favorite_border_rounded
-                                : Icons.favorite_rounded,
-                            active: pc.isCurrentSongFav.isTrue,
-                            activeColor: Colors.redAccent,
-                            onTap: pc.toggleFavourite,
-                          )),
-                      _FooterIconBtn(
-                        icon: Icons.playlist_play_rounded,
-                        onTap: () {
-                          if (GetPlatform.isDesktop) {
-                            pc.homeScaffoldkey.currentState!.openEndDrawer();
-                          } else {
-                            pc.queuePanelController.open();
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              // ── Floating bottom dock ──────────────────────────────────────
+              _buildBottomDock(context, pc, bottomPad),
             ],
           ),
         ),
       ],
     );
   }
+
+  Widget _buildBottomDock(BuildContext context, PlayerController pc, double bottomPad) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 28,
+        right: 28,
+        bottom: bottomPad > 0 ? bottomPad + 8 : 20,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 380),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(100),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(18),
+                  borderRadius: BorderRadius.circular(100),
+                  border: Border.all(
+                    color: Colors.white.withAlpha(30),
+                    width: 1,
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Loop
+                    Obx(() => _DockIconBtn(
+                          icon: Icons.all_inclusive_rounded,
+                          active: pc.isLoopModeEnabled.value,
+                          onTap: pc.toggleLoopMode,
+                        )),
+                    // Shuffle
+                    Obx(() => _DockIconBtn(
+                          icon: Icons.shuffle_rounded,
+                          active: pc.isShuffleModeEnabled.value,
+                          onTap: pc.toggleShuffleMode,
+                        )),
+                    // Favourite
+                    Obx(() => _DockIconBtn(
+                          icon: pc.isCurrentSongFav.isFalse
+                              ? Icons.favorite_border_rounded
+                              : Icons.favorite_rounded,
+                          active: pc.isCurrentSongFav.isTrue,
+                          activeColor: Colors.redAccent,
+                          onTap: pc.toggleFavourite,
+                        )),
+                    // Queue
+                    _DockIconBtn(
+                      icon: Icons.queue_music_rounded,
+                      onTap: () {
+                        if (GetPlatform.isDesktop) {
+                          pc.homeScaffoldkey.currentState!
+                              .openEndDrawer();
+                        } else {
+                          pc.queuePanelController.open();
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -849,81 +879,86 @@ class _SquigglyProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GetX<PlayerController>(builder: (controller) {
-      final isPlaying = controller.buttonState.value == PlayButtonState.playing;
+    return Obx(() {
       final wavyEnabled = sc.squigglySliderEnabled.value;
-      final maxMs =
-          controller.progressBarStatus.value.total.inMilliseconds.toDouble();
-      final curMs =
-          controller.progressBarStatus.value.current.inMilliseconds.toDouble();
-      final maxVal = maxMs > 0 ? maxMs : 1.0;
-      final curVal = curMs.clamp(0.0, maxVal);
+      final amplitude = sc.squigglyAmplitude.value;
+      final wavelength = sc.squigglyWavelength.value;
+      final speed = sc.squigglySpeed.value;
+      return GetX<PlayerController>(builder: (controller) {
+        final playing = controller.buttonState.value == PlayButtonState.playing;
+        final maxMs =
+            controller.progressBarStatus.value.total.inMilliseconds.toDouble();
+        final curMs =
+            controller.progressBarStatus.value.current.inMilliseconds.toDouble();
+        final maxVal = maxMs > 0 ? maxMs : 1.0;
+        final curVal = curMs.clamp(0.0, maxVal);
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 3.0,
-              thumbShape:
-                  const RoundSliderThumbShape(enabledThumbRadius: 6),
-              overlayShape:
-                  const RoundSliderOverlayShape(overlayRadius: 14),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 3.0,
+                thumbShape:
+                    const RoundSliderThumbShape(enabledThumbRadius: 6),
+                overlayShape:
+                    const RoundSliderOverlayShape(overlayRadius: 14),
+              ),
+              child: SquigglySlider(
+                key: ValueKey('${wavyEnabled}_${playing}_${amplitude}_${wavelength}_${speed}'),
+                value: curVal,
+                min: 0.0,
+                max: maxVal,
+                activeColor: Theme.of(context).sliderTheme.activeTrackColor,
+                inactiveColor:
+                    Theme.of(context).sliderTheme.inactiveTrackColor,
+                thumbColor: Theme.of(context).sliderTheme.thumbColor,
+                squiggleAmplitude: wavyEnabled && playing ? amplitude : 0.0,
+                squiggleWavelength: wavelength,
+                squiggleSpeed: wavyEnabled && playing ? speed : 0.0,
+                onChanged: (v) =>
+                    controller.seek(Duration(milliseconds: v.toInt())),
+              ),
             ),
-            child: SquigglySlider(
-              value: curVal,
-              min: 0.0,
-              max: maxVal,
-              activeColor: Theme.of(context).sliderTheme.activeTrackColor,
-              inactiveColor:
-                  Theme.of(context).sliderTheme.inactiveTrackColor,
-              thumbColor: Theme.of(context).sliderTheme.thumbColor,
-              squiggleAmplitude:
-                  wavyEnabled && isPlaying ? 2.0 : 0.0,
-              squiggleWavelength: 10.0,
-              squiggleSpeed: wavyEnabled && isPlaying ? 0.05 : 0.0,
-              onChanged: (v) =>
-                  controller.seek(Duration(milliseconds: v.toInt())),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _fmt(controller.progressBarStatus.value.current),
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium!
+                        .copyWith(fontSize: 11),
+                  ),
+                  Text(
+                    _fmt(controller.progressBarStatus.value.total),
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium!
+                        .copyWith(fontSize: 11),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _fmt(controller.progressBarStatus.value.current),
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium!
-                      .copyWith(fontSize: 11),
-                ),
-                Text(
-                  _fmt(controller.progressBarStatus.value.total),
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium!
-                      .copyWith(fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
+          ],
+        );
+      });
     });
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FOOTER ICON BUTTON
+// DOCK ICON BUTTON
 // ─────────────────────────────────────────────────────────────────────────────
-class _FooterIconBtn extends StatelessWidget {
+class _DockIconBtn extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   final bool active;
   final Color? activeColor;
 
-  const _FooterIconBtn({
+  const _DockIconBtn({
     required this.icon,
     required this.onTap,
     this.active = false,
@@ -932,15 +967,34 @@ class _FooterIconBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = Theme.of(context).textTheme.titleLarge!.color!;
-    return IconButton(
-      onPressed: onTap,
-      icon: Icon(
-        icon,
-        color: active
-            ? (activeColor ?? baseColor)
-            : baseColor.withAlpha(77),
-        size: 24,
+    final pc = Get.find<PlayerController>();
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Obx(() {
+          final accent = pc.extractedAccentColor.value;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            padding: const EdgeInsets.all(6),
+            decoration: active
+                ? BoxDecoration(
+                    color: (activeColor ?? accent ?? Colors.white)
+                        .withAlpha(30),
+                    shape: BoxShape.circle,
+                  )
+                : null,
+            child: Icon(
+              icon,
+              size: 22,
+              color: active
+                  ? (activeColor ?? accent ?? Colors.white)
+                  : Colors.white.withAlpha(140),
+            ),
+          );
+        }),
       ),
     );
   }
