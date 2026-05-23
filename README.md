@@ -1,93 +1,106 @@
-<div align="center">
+# 🎵 CloudBeatz
 
-# ❗**This repository is no longer maintained.**
+**CloudBeatz** is a customized and re-branded version of the open-source **Harmony-Music** project by [anandnet](https://github.com/anandnet/Harmony-Music).
 
-</div>
+This build focuses on improved UI design, rebranding (logo & name), and performance tweaks — made purely for **personal, educational, and non-commercial** use.
 
-<img src="https://github.com/anandnet/Harmony-Music/blob/main/cover.png" width="1200" >
+Hosted demo: 🌐 [https://cloudbeatz.web.app](https://cloudbeatz.web.app)
 
-# Harmony Music
-A cross platform app for music streaming made with Flutter(Android, Windows, linux).
+---
 
-# Features
-* Ability to play song from Ytube/Ytube Music.
-* Song cache while playing
-* Radio feature support
-* Background music
-* Playlist creation & bookmark support
-* Artist & Album bookmark support
-* Import song,Playlist,Album,Artist via sharing from Ytube/Ytube Music.
-* Streaming quality control
-* Song downloading support
-* Language support
-* Skip silence
-* Dynamic Theme
-* Flexibility to switch between Bottom & Side Nav bar
-* Equalizer support
-* Android Auto support
-* Synced & Plain Lyrics support
-* Sleep Timer
-* No Advertisment
-* No Login required
-* Piped playlist integration
+## 🚀 Features
 
+- Stream music directly from YouTube / YouTube Music  
+- Smart caching while playback  
+- Radio and background playback support  
+- Playlist creation & bookmarking  
+- Artist and Album bookmark support  
+- Import songs, playlists, albums, and artists via YouTube sharing  
+- Adjustable streaming quality  
+- Offline song downloading  
+- Multi-language support  
+- Skip silence feature  
+- Dynamic theming system  
+- Switch between Bottom and Side Navigation bar  
+- Built-in Equalizer  
+- Android Auto support  
+- Synced & plain lyrics support  
+- Sleep timer  
+- No advertisements  
+- No login required  
+- Piped playlist integration
 
-# Download
-* Pleass choose one source for android apk. you won't be able to update from cross build apk source.
+---
 
-<a href="https://github.com/anandnet/Harmony-Music/releases/latest"><img src ="https://github.com/anandnet/Harmony-Music/blob/main/don_github.png" width = "250"></a> <a href= "https://f-droid.org/packages/com.anandnet.harmonymusic"><img src = "https://github.com/anandnet/Harmony-Music/blob/main/down_fdroid.png" width = '250'></a></a> 
+## 🧩 Technical Overview
 
-# Translation
-<a href="https://hosted.weblate.org/engage/harmony-music/">
-<img src="https://hosted.weblate.org/widget/harmony-music/project-translations/multi-auto.svg" alt="Translation status" />
-</a>
+CloudBeatz is a **cross-platform Flutter app** supporting **Android, Windows, and Linux**, designed for music playback, streaming, and playlist management.
 
-You can also help us in translation, click status image or <a href="https://hosted.weblate.org/projects/harmony-music/project-translations/"> here </a> to go to Weblate.
+Built with packages such as:
+- `just_audio` – for core music playback  
+- `media_kit` – for desktop audio support  
+- `audio_service` – background audio management  
+- `get` – for efficient state management  
+- `youtube_explode_dart` – for streaming links  
+- `hive` / `hive_flutter` – for local database storage  
 
-# Troubleshoot
-* if you are facing Notification control issue or music playback stopped by system optimization, please enable ignore battery optimization option from settings
+---
 
-# License
-```
-Harmony Music is a free software licensed under GPL v3.0 with following condition.
+## 📄 License
 
-- Copied/Modified version of this software can not be used for 'non-free' and profit purposes.
-- You can not publish copied/modified version of this app on closed source app repository
-  like PlayStore/AppStore.
+This project is derived from **Harmony-Music**, which is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
 
-```
+Under this license:
+- You may **use, study, modify, and share** the code freely.  
+- If you make your version public, you must **also share your modified source code** under the same GPL-3.0 license.  
+- You **cannot sell or close-source** this app without explicit permission from the original author.
 
+**Original project:**  
+🔗 [Harmony-Music by anandnet](https://github.com/anandnet/Harmony-Music)
 
-# Disclaimer
-```
-This project has been created while learning & learning is the main intention.
-This project is not sponsored or affiliated with, funded, authorized, endorsed by any content provider.
-Any Song, content, trademark used in this app are intellectual property of their respective owners.
-Harmony music is not responsible for any infringement of copyright or other intellectual property rights that may result
-from the use of the songs and other content available through this app.
+**Modified by:**  
+👤 Akash Kumar Behera  
+🌐 [https://cloudbeatz.web.app](https://cloudbeatz.web.app)  
+📅 2025  
 
-This Software is released "as-is", without any warranty, responsibility or liability.
-In no event shall the Author of this Software be liable for any special, consequential,
-incidental or indirect damages whatsoever (including, without limitation, any 
-other pecuniary loss) arising out of the use of inability to use this product, even if
-Author of this Sotware is aware of the possibility of such damages and known defect.
-```
+License:  
+🧾 [GNU GPL-3.0 License](./LICENSE)
 
-# Learning References & Credits
-<a href = 'https://docs.flutter.dev/'>Flutter documentation</a> - a best guide to learn cross platform Ui/app developemnt<br/>
-<a href = 'https://suragch.medium.com/'>Suragch</a>'s Article related to Just audio & state management,architectural style<br/>
-<a href = 'https://github.com/sigma67'>sigma67</a>'s unofficial ytmusic api project<br/>
-App UI inspired by <a href = 'https://github.com/vfsfitvnm'>vfsfitvnm</a>'s ViMusic<br/>
-Synced lyrics provided by <a href = 'https://lrclib.net' >LRCLIB</a> <br/>
-<a href = 'https://piped.video' >Piped</a> for playlists.
+---
 
-#### Major Packages used
-* just_audio: ^0.9.40  -  audio player for android
-* media_kit: ^1.1.9 - audio player for linux and windows
-* audio_service: ^0.18.15 - manage background music & platform audio services
-* get: ^4.6.6 -  package for high-performance state management, intelligent dependency injection, and route management
-* youtube_explode_dart: ^2.0.2 - Third party package to provide song url
-* hive: ^2.2.3 - offline db used 
-* hive_flutter: ^1.1.0
+## ⚙️ Notes
 
+- CloudBeatz is a **personal rebranded version** created for learning, testing, and showcasing UI/UX improvements.  
+- It is **not affiliated with or endorsed by** the Harmony-Music project or its contributors.  
+- All song, logo, and media rights belong to their respective owners.  
+- This software is distributed “as-is” without any warranty or liability.
 
+---
+
+## ⚠️ Disclaimer
+
+This project was created purely for **educational and experimental** purposes.  
+CloudBeatz (and Harmony-Music) do **not host or own any audio content**.  
+All media streamed or accessed through this app are property of their respective copyright holders.  
+
+The author is **not responsible** for any copyright or intellectual property infringement resulting from misuse of this app.  
+This software comes with **no warranties** and **no liabilities** of any kind.
+
+---
+
+## 📚 Learning References & Credits
+
+This app was inspired by the amazing open-source community.  
+Special thanks to:
+
+- [Flutter documentation](https://docs.flutter.dev/) — cross-platform development reference  
+- [Suragch](https://suragch.medium.com/) — audio and state management concepts  
+- [sigma67](https://github.com/sigma67) — unofficial YouTube Music API  
+- [vfsfitvnm](https://github.com/vfsfitvnm) — ViMusic (UI inspiration)  
+- [LRCLIB](https://lrclib.net) — synced lyrics support  
+- [Piped](https://piped.video) — for playlist integration  
+
+---
+
+© 2025 Akash Kumar Behera  
+Released under the GNU General Public License v3.0 (GPL-3.0)
