@@ -72,157 +72,205 @@ class ModernPlayer extends StatelessWidget {
         // ── Main column ────────────────────────────────────────────────────
         SafeArea(
           bottom: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ── Top header ───────────────────────────────────────────────
-              _TopHeader(pc: pc),
+          child: Obx(() {
+            final showLyrics = pc.showLyricsflag.value;
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+              child: showLyrics
+                  ? _buildLyricsLayout(context, pc, sc, bottomPad)
+                  : _buildNormalLayout(context, pc, sc, bottomPad, artSize),
+            );
+          }),
+        ),
+      ],
+    );
+  }
 
-              // ── Artwork + Lyrics overlay ─────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Center(
-                  child: Obx(() {
-                    final song = pc.currentSong.value;
-                    if (song == null) return const SizedBox.shrink();
-                    return _ArtworkCard(
-                      song: song,
-                      artSize: artSize,
-                      pc: pc,
-                    );
-                  }),
-                ),
-              ),
+  Widget _buildNormalLayout(BuildContext context, PlayerController pc,
+      SettingsScreenController sc, double bottomPad, double artSize) {
+    return Column(
+      key: const ValueKey("normal_layout"),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ── Top header ───────────────────────────────────────────────
+        _TopHeader(pc: pc),
+        const SizedBox(height: 12),
 
-              const SizedBox(height: 20),
+        // ── Artwork ──────────────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Center(
+            child: Obx(() {
+              final song = pc.currentSong.value;
+              if (song == null) return const SizedBox.shrink();
+              return _ArtworkCard(
+                song: song,
+                artSize: artSize,
+                pc: pc,
+              );
+            }),
+          ),
+        ),
 
-              // ── Song title & artist ──────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 500),
-                  child: Obx(() {
-                    final song = pc.currentSong.value;
-                    return Column(
-                      children: [
-                        Marquee(
-                          delay: const Duration(milliseconds: 400),
-                          duration: const Duration(seconds: 12),
-                          id: "${song?.id}_modern_title",
-                          child: Text(
-                            song?.title ?? "—",
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge!
-                                .copyWith(fontWeight: FontWeight.w800, fontSize: 20),
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          song?.artist ?? "—",
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium!
-                              .copyWith(fontWeight: FontWeight.w500, fontSize: 14),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    );
-                  }),
-                ),
-              ),
+        const SizedBox(height: 20),
 
-              const SizedBox(height: 28),
-
-              // ── Primary Row: Pill Play/Pause + Circular Skip Next ────────
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 500),
-                  child: Row(
-                    children: [
-                      Expanded(child: _PillPlayPauseButton(pc: pc)),
-                      const SizedBox(width: 16),
-                      _CircularSkipButton(
-                        icon: Icons.skip_next_rounded,
-                        onTap: () => pc.next(),
-                        pc: pc,
-                        size: 58,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // ── Secondary Row: Circular Skip Prev + SquigglySlider ───────
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 500),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      _CircularSkipButton(
-                        icon: Icons.skip_previous_rounded,
-                        onTap: () => pc.prev(),
-                        pc: pc,
-                        size: 48,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _SquigglyProgressBar(pc: pc, sc: sc),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // ── Queue drag handle ─────────────────────────────────────────
-              GestureDetector(
-                onVerticalDragUpdate: (details) {
-                  if (details.delta.dy < -6) {
-                    if (GetPlatform.isDesktop) {
-                      pc.homeScaffoldkey.currentState!.openEndDrawer();
-                    } else {
-                      pc.queuePanelController.open();
-                    }
-                  }
-                },
-                child: SizedBox(
-                  height: 28,
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withAlpha(60),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Icon(
-                          Icons.queue_music_rounded,
-                          size: 14,
-                          color: Colors.white.withAlpha(60),
-                        ),
-                      ],
+        // ── Song title & artist ──────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: Obx(() {
+              final song = pc.currentSong.value;
+              return Column(
+                children: [
+                  Marquee(
+                    delay: const Duration(milliseconds: 400),
+                    duration: const Duration(seconds: 12),
+                    id: "${song?.id}_modern_title",
+                    child: Text(
+                      song?.title ?? "—",
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleLarge!
+                          .copyWith(fontWeight: FontWeight.w800, fontSize: 20),
                     ),
                   ),
-                ),
-              ),
+                  const SizedBox(height: 5),
+                  Text(
+                    song?.artist ?? "—",
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium!
+                        .copyWith(fontWeight: FontWeight.w500, fontSize: 14),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              );
+            }),
+          ),
+        ),
 
-              // ── Floating bottom dock ──────────────────────────────────────
-              _buildBottomDock(context, pc, bottomPad),
+        const SizedBox(height: 24),
+
+        // ── Primary Row: Pill Play/Pause + Circular Skip Next ────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: Row(
+              children: [
+                Expanded(child: _PillPlayPauseButton(pc: pc)),
+                const SizedBox(width: 16),
+                _CircularSkipButton(
+                  icon: Icons.skip_next_rounded,
+                  onTap: () => pc.next(),
+                  pc: pc,
+                  size: 58,
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // ── Secondary Row: Circular Skip Prev + SquigglySlider ───────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _CircularSkipButton(
+                  icon: Icons.skip_previous_rounded,
+                  onTap: () => pc.prev(),
+                  pc: pc,
+                  size: 48,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _SquigglyProgressBar(pc: pc, sc: sc),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const Spacer(),
+
+        // ── Floating bottom dock ──────────────────────────────────────
+        _buildBottomDock(context, pc, bottomPad),
+      ],
+    );
+  }
+
+  Widget _buildLyricsLayout(BuildContext context, PlayerController pc,
+      SettingsScreenController sc, double bottomPad) {
+    return Column(
+      key: const ValueKey("lyrics_layout"),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ── Lyrics header (small artwork, title, options) ─────────────
+        _LyricsHeader(pc: pc),
+
+        // ── Lyrics content ───────────────────────────────────────────
+        const Expanded(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+            child: LyricsWidget(
+              padding: EdgeInsets.zero,
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        // ── Squiggly progress bar ────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          child: _SquigglyProgressBar(pc: pc, sc: sc),
+        ),
+
+        const SizedBox(height: 16),
+
+        // ── Controls row ─────────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _CircularSkipButton(
+                icon: Icons.skip_previous_rounded,
+                onTap: () => pc.prev(),
+                pc: pc,
+                size: 48,
+              ),
+              const SizedBox(width: 24),
+              SizedBox(
+                width: 140,
+                child: _PillPlayPauseButton(pc: pc),
+              ),
+              const SizedBox(width: 24),
+              _CircularSkipButton(
+                icon: Icons.skip_next_rounded,
+                onTap: () => pc.next(),
+                pc: pc,
+                size: 48,
+              ),
             ],
           ),
         ),
+
+        const SizedBox(height: 24),
+
+        // ── Floating bottom dock ──────────────────────────────────────
+        _buildBottomDock(context, pc, bottomPad),
       ],
     );
   }
@@ -232,7 +280,7 @@ class ModernPlayer extends StatelessWidget {
       padding: EdgeInsets.only(
         left: 28,
         right: 28,
-        bottom: bottomPad > 0 ? bottomPad + 8 : 20,
+        bottom: bottomPad > 0 ? bottomPad + 18 : 28,
       ),
       child: Center(
         child: ConstrainedBox(
@@ -297,7 +345,6 @@ class ModernPlayer extends StatelessWidget {
       ),
     );
   }
-}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -369,8 +416,91 @@ class _TopHeader extends StatelessWidget {
   }
 }
 
+class _LyricsHeader extends StatelessWidget {
+  final PlayerController pc;
+  const _LyricsHeader({required this.pc});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.keyboard_arrow_down, size: 30),
+            color: Theme.of(context).textTheme.titleMedium!.color,
+            onPressed: pc.playerPanelController.close,
+          ),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: () => pc.showLyrics(),
+            child: Obx(() {
+              final song = pc.currentSong.value;
+              if (song == null) return const SizedBox.shrink();
+              return Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(50),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: ImageWidget(
+                    size: 48,
+                    song: song,
+                    isPlayerArtImage: false,
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Obx(() {
+              final song = pc.currentSong.value;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    song?.title ?? "—",
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium!
+                        .copyWith(fontWeight: FontWeight.w800, fontSize: 16),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    song?.artist ?? "—",
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall!
+                        .copyWith(fontWeight: FontWeight.w500, fontSize: 12, color: Colors.white70),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              );
+            }),
+          ),
+          _LyricsMenuButton(pc: pc),
+        ],
+      ),
+    );
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// ARTWORK CARD (with lyrics overlay on tap)
+// ARTWORK CARD (tappable thumbnail in normal layout)
 // ─────────────────────────────────────────────────────────────────────────────
 class _ArtworkCard extends StatelessWidget {
   final dynamic song;
@@ -404,89 +534,32 @@ class _ArtworkCard extends StatelessWidget {
           child: SizedBox(
             width: artSize,
             height: artSize,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                // ── Artwork image ──────────────────────────────────────
-                isOffline
-                    ? ImageWidget(size: artSize, song: song, isPlayerArtImage: true)
-                    : CachedNetworkImage(
-                        imageUrl: song.artUri.toString(),
-                        cacheKey: "${song.id}_song",
-                        memCacheHeight: 400,
-                        fit: BoxFit.cover,
-                        imageBuilder: (context, imageProvider) {
-                          // Extract accent color when image loads
-                          if (settingsController.themeModetype.value ==
-                              ThemeType.dynamic) {
-                            Future.delayed(
-                              const Duration(milliseconds: 60),
-                              () => pc.extractAlbumColor(
-                                  imageProvider, song.id),
-                            );
-                          }
-                          return Image(image: imageProvider, fit: BoxFit.cover);
-                        },
-                        errorWidget: (c, u, e) => ImageWidget(
-                            size: artSize,
-                            song: song,
-                            isPlayerArtImage: true),
-                        progressIndicatorBuilder: (_, __, ___) =>
-                            const LoadingIndicator(),
-                      ),
-
-                // ── Lyrics overlay (shown when showLyricsflag is true) ─
-                Obx(() => pc.showLyricsflag.value
-                    ? _LyricsOverlay(pc: pc, artSize: artSize)
-                    : const SizedBox.shrink()),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// LYRICS OVERLAY
-// ─────────────────────────────────────────────────────────────────────────────
-class _LyricsOverlay extends StatelessWidget {
-  final PlayerController pc;
-  final double artSize;
-
-  const _LyricsOverlay({required this.pc, required this.artSize});
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          color: Colors.black.withAlpha(178),
-          child: Column(
-            children: [
-              // ── Three-dots menu row (top-right only, no toggle switch) ──────────
-              Padding(
-                padding:
-                    const EdgeInsets.only(left: 10, right: 6, top: 6, bottom: 2),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    _LyricsMenuButton(pc: pc),
-                  ],
-                ),
-              ),
-
-              // ── Lyrics content ───────────────────────────────────────
-              const Expanded(
-                child: LyricsWidget(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
-                ),
-              ),
-            ],
+            child: isOffline
+                ? ImageWidget(size: artSize, song: song, isPlayerArtImage: true)
+                : CachedNetworkImage(
+                    imageUrl: song.artUri.toString(),
+                    cacheKey: "${song.id}_song",
+                    memCacheHeight: 400,
+                    fit: BoxFit.cover,
+                    imageBuilder: (context, imageProvider) {
+                      // Extract accent color when image loads
+                      if (settingsController.themeModetype.value ==
+                          ThemeType.dynamic) {
+                        Future.delayed(
+                          const Duration(milliseconds: 60),
+                          () => pc.extractAlbumColor(
+                              imageProvider, song.id),
+                        );
+                      }
+                      return Image(image: imageProvider, fit: BoxFit.cover);
+                    },
+                    errorWidget: (c, u, e) => ImageWidget(
+                        size: artSize,
+                        song: song,
+                        isPlayerArtImage: true),
+                    progressIndicatorBuilder: (_, __, ___) =>
+                        const LoadingIndicator(),
+                  ),
           ),
         ),
       ),
@@ -949,8 +1022,9 @@ class _SquigglyProgressBar extends StatelessWidget {
   }
 }
 
+
 // ─────────────────────────────────────────────────────────────────────────────
-// DOCK ICON BUTTON
+// DOCK ICON BUTTON  (used inside the floating glassmorphic bottom dock)
 // ─────────────────────────────────────────────────────────────────────────────
 class _DockIconBtn extends StatelessWidget {
   final IconData icon;
