@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
+import 'package:palette_generator/palette_generator.dart';
 
 import '../../models/playling_from.dart';
 import '../../services/downloader.dart';
@@ -72,6 +73,10 @@ class PlayerController extends GetxController
       <String, dynamic>{"synced": "", "plainLyrics": ""}.obs;
   ScrollController scrollController = ScrollController();
   final GlobalKey<ScaffoldState> homeScaffoldkey = GlobalKey<ScaffoldState>();
+
+  // Album art extracted accent color for Modern Player
+  final extractedAccentColor = Rxn<Color>();
+  String? _lastExtractedSongId;
 
   final buttonState = PlayButtonState.paused.obs;
 
@@ -266,6 +271,8 @@ class PlayerController extends GetxController
         }
         lyrics.value = {"synced": "", "plainLyrics": ""};
         showLyricsflag.value = false;
+        extractedAccentColor.value = null;
+        _lastExtractedSongId = null;
         if (isDesktopLyricsDialogOpen) {
           Navigator.pop(Get.context!);
         }
@@ -760,6 +767,39 @@ class PlayerController extends GetxController
   void changeLyricsMode(int? val) {
     Hive.box("AppPrefs").put("lyricsMode", val);
     lyricsMode.value = val!;
+  }
+
+  /// Extract vibrant/dominant accent color from album art image for Modern Player buttons
+  Future<void> extractAlbumColor(ImageProvider imageProvider, String songId) async {
+    if (songId == _lastExtractedSongId) return;
+    try {
+      final generator = await PaletteGenerator.fromImageProvider(
+          ResizeImage(imageProvider, height: 150, width: 150));
+      // Prefer vibrant colors for buttons, fall back to dominant
+      final paletteColor = generator.vibrantColor ??
+          generator.lightVibrantColor ??
+          generator.dominantColor ??
+          generator.darkVibrantColor;
+      if (paletteColor != null) {
+        // Ensure minimum saturation so we get a rich color, not just grey
+        final hslColor = HSLColor.fromColor(paletteColor.color);
+        final richColor = hslColor.saturation < 0.25
+            ? hslColor.withSaturation(0.50).withLightness(0.45).toColor()
+            : hslColor.withLightness(
+                    hslColor.lightness.clamp(0.35, 0.60).toDouble())
+                .toColor();
+        extractedAccentColor.value = richColor;
+        _lastExtractedSongId = songId;
+      }
+    } catch (_) {}
+  }
+
+  /// Clears cached lyrics and re-fetches for the current song
+  Future<void> refetchLyrics() async {
+    lyrics.value = {"synced": "", "plainLyrics": ""};
+    isLyricsLoading.value = false;
+    showLyricsflag.value = true;
+    await showLyrics();
   }
 
   void sleepEndOfSong() {

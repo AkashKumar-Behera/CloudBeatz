@@ -225,14 +225,14 @@ class HomeScreenController extends GetxController {
         final tmp = PlaylistContent(
             playlistList: (content["contents"]).whereType<Playlist>().toList(),
             title: content["title"]);
-        if (tmp.playlistList.length >= 2) {
+        if (tmp.playlistList.isNotEmpty) {
           contentTemp.add(tmp);
         }
       } else if ((content["contents"][0]).runtimeType == Album) {
         final tmp = AlbumContent(
             albumList: (content["contents"]).whereType<Album>().toList(),
             title: content["title"]);
-        if (tmp.albumList.length >= 2) {
+        if (tmp.albumList.isNotEmpty) {
           contentTemp.add(tmp);
         }
       }

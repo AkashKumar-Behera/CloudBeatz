@@ -47,6 +47,7 @@ class SettingsScreenController extends GetxController {
   final keepScreenAwake = false.obs;
   final restorePlaybackSession = false.obs;
   final cacheHomeScreenData = true.obs;
+  final squigglySliderEnabled = true.obs;
   final currentVersion = "V1.12.2";
 
   @override
@@ -100,6 +101,7 @@ class SettingsScreenController extends GetxController {
     restorePlaybackSession.value =
         setBox.get("restrorePlaybackSession") ?? false;
     cacheHomeScreenData.value = setBox.get("cacheHomeScreenData") ?? true;
+    squigglySliderEnabled.value = setBox.get("squigglySliderEnabled") ?? true;
     streamingQuality.value =
         AudioQuality.values[setBox.get('streamingQuality')];
     playerUi.value = isDesktop ? 0 : (setBox.get('playerUi') ?? 0);
@@ -152,6 +154,11 @@ class SettingsScreenController extends GetxController {
   void setPlayerUi(dynamic val) {
     setBox.put("playerUi", val);
     playerUi.value = val;
+  }
+
+  void toggleSquigglySlider(bool val) {
+    setBox.put("squigglySliderEnabled", val);
+    squigglySliderEnabled.value = val;
   }
 
   void enableBottomNavBar(bool val) {

@@ -167,6 +167,22 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                   if (!isDesktop)
+                    Obx(() => settingsController.playerUi.value == 1
+                        ? ListTile(
+                            contentPadding:
+                                const EdgeInsets.only(left: 5, right: 10),
+                            title: Text("wavyProgressBar".tr),
+                            subtitle: Text("wavyProgressBarDes".tr,
+                                style: Theme.of(context).textTheme.bodyMedium),
+                            trailing: Obx(
+                              () => CustSwitch(
+                                  value: settingsController
+                                      .squigglySliderEnabled.value,
+                                  onChanged:
+                                      settingsController.toggleSquigglySlider),
+                            ))
+                        : const SizedBox.shrink()),
+                  if (!isDesktop)
                     ListTile(
                         contentPadding:
                             const EdgeInsets.only(left: 5, right: 10),

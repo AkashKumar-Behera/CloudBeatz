@@ -2,62 +2,66 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:squiggly_slider/slider.dart';
+import 'package:toggle_switch/toggle_switch.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:widget_marquee/widget_marquee.dart';
 
+import '../../../ui/utils/theme_controller.dart';
+import '../../screens/Settings/settings_screen_controller.dart';
 import '../../widgets/image_widget.dart';
 import '../../widgets/loader.dart';
 import '../../widgets/songinfo_bottom_sheet.dart';
 import '../player_controller.dart';
 import 'backgroud_image.dart';
+import 'lyrics_widget.dart';
 
-/// Modern Player UI
+/// Modern Player UI — v2
 ///
-/// A premium, minimalist player layout featuring:
-/// - Large blurred ambient background
-/// - Bold centered artwork card with soft rounded corners
-/// - Centered song title + artist subtitle
-/// - Primary row: wide accent pill play/pause + circular skip next
-/// - Secondary row: circular skip previous + expanded squiggly progress bar
-/// - Minimalist footer: loop, queue, more options
+/// Features:
+/// - Blurred ambient background with album-art extracted accent colors
+/// - Large artwork card (r=24) that taps to reveal inline lyrics
+/// - Lyrics overlay: Synced/Plain toggle switch + three-dots popup
+/// - Inline lyrics text editor (popup)
+/// - Pill play/pause + circular skip controls using extracted accent color
+/// - SquigglySlider progress bar (toggleable via Settings)
+/// - Footer: Loop, Shuffle, Favourite, Queue
 class ModernPlayer extends StatelessWidget {
   const ModernPlayer({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final PlayerController playerController = Get.find<PlayerController>();
+    final PlayerController pc = Get.find<PlayerController>();
+    final SettingsScreenController sc = Get.find<SettingsScreenController>();
     final size = MediaQuery.of(context).size;
     final bottomPad = Get.mediaQuery.padding.bottom;
-
-    // Artwork size: fill width but leave room for controls
     final double artSize = (size.width - 48).clamp(0.0, 360.0);
 
     return Stack(
       children: [
-        // ── Background: blurred dynamic album art ──────────────────────────
+        // ── Blurred ambient background ─────────────────────────────────────
         BackgroudImage(
-          key: Key("${playerController.currentSong.value?.id}_modern_bg"),
+          key: Key("${pc.currentSong.value?.id}_modern_bg"),
           cacheHeight: 200,
         ),
         BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 40.0, sigmaY: 40.0),
+          filter: ImageFilter.blur(sigmaX: 42.0, sigmaY: 42.0),
           child: Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withOpacity(0.78),
-            ),
+            color: Theme.of(context).primaryColor.withAlpha(200),
           ),
         ),
 
-        // ── Gradient fade at bottom to anchor controls ─────────────────────
+        // ── Bottom gradient anchor ─────────────────────────────────────────
         Align(
           alignment: Alignment.bottomCenter,
           child: Container(
-            height: size.height * 0.55,
+            height: size.height * 0.50,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
                   Theme.of(context).primaryColor,
-                  Theme.of(context).primaryColor.withOpacity(0.0),
+                  Colors.transparent,
                 ],
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
@@ -66,115 +70,26 @@ class ModernPlayer extends StatelessWidget {
           ),
         ),
 
-        // ── Main scrollable content ────────────────────────────────────────
+        // ── Main column ────────────────────────────────────────────────────
         SafeArea(
           bottom: false,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Top header bar ─────────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Collapse button
-                    IconButton(
-                      icon: Icon(
-                        Icons.keyboard_arrow_down,
-                        size: 30,
-                        color: Theme.of(context).textTheme.titleMedium!.color,
-                      ),
-                      onPressed: playerController.playerPanelController.close,
-                    ),
+              // ── Top header ───────────────────────────────────────────────
+              _TopHeader(pc: pc),
 
-                    // Playing from label
-                    Expanded(
-                      child: Obx(() => Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                playerController.playinfrom.value.typeString,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelSmall!
-                                    .copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 0.8,
-                                    ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '"${playerController.playinfrom.value.nameString}"',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelSmall!
-                                    .copyWith(fontSize: 11),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ],
-                          )),
-                    ),
-
-                    // More options
-                    IconButton(
-                      icon: Icon(
-                        Icons.more_vert,
-                        size: 26,
-                        color: Theme.of(context).textTheme.titleMedium!.color,
-                      ),
-                      onPressed: () {
-                        if (playerController.currentSong.value == null) return;
-                        showModalBottomSheet(
-                          constraints: const BoxConstraints(maxWidth: 500),
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(10.0)),
-                          ),
-                          isScrollControlled: true,
-                          context: playerController
-                              .homeScaffoldkey.currentState!.context,
-                          barrierColor: Colors.transparent.withAlpha(100),
-                          builder: (context) => SongInfoBottomSheet(
-                            playerController.currentSong.value!,
-                            calledFromPlayer: true,
-                          ),
-                        ).whenComplete(() => Get.delete<SongInfoController>());
-                      },
-                    ),
-                  ],
-                ),
-              ),
-
-              // ── Artwork card ────────────────────────────────────────────
+              // ── Artwork + Lyrics overlay ─────────────────────────────────
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Center(
                   child: Obx(() {
-                    final song = playerController.currentSong.value;
+                    final song = pc.currentSong.value;
                     if (song == null) return const SizedBox.shrink();
-                    return Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.45),
-                            blurRadius: 40,
-                            offset: const Offset(0, 16),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(24),
-                        child: ImageWidget(
-                          size: artSize,
-                          song: song,
-                          isPlayerArtImage: true,
-                        ),
-                      ),
+                    return _ArtworkCard(
+                      song: song,
+                      artSize: artSize,
+                      pc: pc,
                     );
                   }),
                 ),
@@ -182,13 +97,13 @@ class ModernPlayer extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // ── Song Title & Artist ────────────────────────────────────
+              // ── Song title & artist ──────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 28),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 500),
                   child: Obx(() {
-                    final song = playerController.currentSong.value;
+                    final song = pc.currentSong.value;
                     return Column(
                       children: [
                         Marquee(
@@ -201,29 +116,18 @@ class ModernPlayer extends StatelessWidget {
                             style: Theme.of(context)
                                 .textTheme
                                 .titleLarge!
-                                .copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 20,
-                                ),
+                                .copyWith(fontWeight: FontWeight.w800, fontSize: 20),
                           ),
                         ),
                         const SizedBox(height: 5),
-                        Marquee(
-                          delay: const Duration(milliseconds: 400),
-                          duration: const Duration(seconds: 12),
-                          id: "${song?.id}_modern_artist",
-                          child: Text(
-                            song?.artist ?? "—",
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium!
-                                .copyWith(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 14,
-                                ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                        Text(
+                          song?.artist ?? "—",
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium!
+                              .copyWith(fontWeight: FontWeight.w500, fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     );
@@ -233,23 +137,19 @@ class ModernPlayer extends StatelessWidget {
 
               const SizedBox(height: 28),
 
-              // ── Primary Controls Row: Pill Play/Pause + Circular Next ───
+              // ── Primary Row: Pill Play/Pause + Circular Skip Next ────────
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 28),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 500),
                   child: Row(
                     children: [
-                      // Wide pill-shaped Play/Pause button
-                      Expanded(
-                        child: _PillPlayPauseButton(
-                            playerController: playerController),
-                      ),
+                      Expanded(child: _PillPlayPauseButton(pc: pc)),
                       const SizedBox(width: 16),
-                      // Circular Skip Next button
-                      _CircularControlButton(
+                      _CircularSkipButton(
                         icon: Icons.skip_next_rounded,
-                        onTap: () => playerController.next(),
+                        onTap: () => pc.next(),
+                        pc: pc,
                         size: 58,
                       ),
                     ],
@@ -257,125 +157,70 @@ class ModernPlayer extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-              // ── Secondary Row: Circular Prev + Squiggly Seek Bar ────────
+              // ── Secondary Row: Circular Skip Prev + SquigglySlider ───────
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 28),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 500),
-                  child: Column(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Circular Skip Previous button
-                          _CircularControlButton(
-                            icon: Icons.skip_previous_rounded,
-                            onTap: () => playerController.prev(),
-                            size: 48,
-                          ),
-                          const SizedBox(width: 12),
-                          // Expanded squiggly progress bar
-                          Expanded(
-                            child: _SquigglyProgressBar(
-                                playerController: playerController),
-                          ),
-                        ],
+                      _CircularSkipButton(
+                        icon: Icons.skip_previous_rounded,
+                        onTap: () => pc.prev(),
+                        pc: pc,
+                        size: 48,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _SquigglyProgressBar(pc: pc, sc: sc),
                       ),
                     ],
                   ),
                 ),
               ),
 
-              // ── Footer Action Bar ────────────────────────────────────────
-              SizedBox(height: bottomPad > 0 ? 12 : 20),
+              // ── Footer bar ───────────────────────────────────────────────
+              SizedBox(height: bottomPad > 0 ? 10 : 18),
               Padding(
                 padding: EdgeInsets.only(
                     left: 28,
                     right: 28,
-                    bottom: bottomPad > 0 ? bottomPad : 16),
+                    bottom: bottomPad > 0 ? bottomPad : 14),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 500),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      // Loop mode toggle
-                      Obx(() => IconButton(
-                            onPressed: playerController.toggleLoopMode,
-                            icon: Icon(
-                              Icons.all_inclusive_rounded,
-                              color: playerController.isLoopModeEnabled.value
-                                  ? Theme.of(context)
-                                      .textTheme
-                                      .titleLarge!
-                                      .color
-                                  : Theme.of(context)
-                                      .textTheme
-                                      .titleLarge!
-                                      .color!
-                                      .withOpacity(0.30),
-                              size: 24,
-                            ),
+                      Obx(() => _FooterIconBtn(
+                            icon: Icons.all_inclusive_rounded,
+                            active: pc.isLoopModeEnabled.value,
+                            onTap: pc.toggleLoopMode,
                           )),
-
-                      // Shuffle mode toggle
-                      Obx(() => IconButton(
-                            onPressed: playerController.toggleShuffleMode,
-                            icon: Icon(
-                              Icons.shuffle_rounded,
-                              color:
-                                  playerController.isShuffleModeEnabled.value
-                                      ? Theme.of(context)
-                                          .textTheme
-                                          .titleLarge!
-                                          .color
-                                      : Theme.of(context)
-                                          .textTheme
-                                          .titleLarge!
-                                          .color!
-                                          .withOpacity(0.30),
-                              size: 24,
-                            ),
+                      Obx(() => _FooterIconBtn(
+                            icon: Icons.shuffle_rounded,
+                            active: pc.isShuffleModeEnabled.value,
+                            onTap: pc.toggleShuffleMode,
                           )),
-
-                      // Favourite toggle
-                      Obx(() => IconButton(
-                            onPressed: playerController.toggleFavourite,
-                            icon: Icon(
-                              playerController.isCurrentSongFav.isFalse
-                                  ? Icons.favorite_border_rounded
-                                  : Icons.favorite_rounded,
-                              color: playerController.isCurrentSongFav.isTrue
-                                  ? Colors.redAccent
-                                  : Theme.of(context)
-                                      .textTheme
-                                      .titleLarge!
-                                      .color!
-                                      .withOpacity(0.55),
-                              size: 24,
-                            ),
+                      Obx(() => _FooterIconBtn(
+                            icon: pc.isCurrentSongFav.isFalse
+                                ? Icons.favorite_border_rounded
+                                : Icons.favorite_rounded,
+                            active: pc.isCurrentSongFav.isTrue,
+                            activeColor: Colors.redAccent,
+                            onTap: pc.toggleFavourite,
                           )),
-
-                      // Queue trigger
-                      IconButton(
-                        onPressed: () {
+                      _FooterIconBtn(
+                        icon: Icons.playlist_play_rounded,
+                        onTap: () {
                           if (GetPlatform.isDesktop) {
-                            playerController.homeScaffoldkey.currentState!
-                                .openEndDrawer();
+                            pc.homeScaffoldkey.currentState!.openEndDrawer();
                           } else {
-                            playerController.queuePanelController.open();
+                            pc.queuePanelController.open();
                           }
                         },
-                        icon: Icon(
-                          Icons.playlist_play_rounded,
-                          color: Theme.of(context)
-                              .textTheme
-                              .titleLarge!
-                              .color!
-                              .withOpacity(0.55),
-                          size: 26,
-                        ),
                       ),
                     ],
                   ),
@@ -389,10 +234,468 @@ class ModernPlayer extends StatelessWidget {
   }
 }
 
-// ── Pill-shaped Play / Pause button ─────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// TOP HEADER
+// ─────────────────────────────────────────────────────────────────────────────
+class _TopHeader extends StatelessWidget {
+  final PlayerController pc;
+  const _TopHeader({required this.pc});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.keyboard_arrow_down, size: 30),
+            color: Theme.of(context).textTheme.titleMedium!.color,
+            onPressed: pc.playerPanelController.close,
+          ),
+          Expanded(
+            child: Obx(() => Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      pc.playinfrom.value.typeString,
+                      style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                          fontWeight: FontWeight.w700, letterSpacing: 0.8),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '"${pc.playinfrom.value.nameString}"',
+                      style: Theme.of(context)
+                          .textTheme
+                          .labelSmall!
+                          .copyWith(fontSize: 11),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ],
+                )),
+          ),
+          IconButton(
+            icon: const Icon(Icons.more_vert, size: 26),
+            color: Theme.of(context).textTheme.titleMedium!.color,
+            onPressed: () {
+              if (pc.currentSong.value == null) return;
+              showModalBottomSheet(
+                constraints: const BoxConstraints(maxWidth: 500),
+                shape: const RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(10.0))),
+                isScrollControlled: true,
+                context: pc.homeScaffoldkey.currentState!.context,
+                barrierColor: Colors.transparent.withAlpha(100),
+                builder: (context) => SongInfoBottomSheet(
+                  pc.currentSong.value!,
+                  calledFromPlayer: true,
+                ),
+              ).whenComplete(() => Get.delete<SongInfoController>());
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ARTWORK CARD (with lyrics overlay on tap)
+// ─────────────────────────────────────────────────────────────────────────────
+class _ArtworkCard extends StatelessWidget {
+  final dynamic song;
+  final double artSize;
+  final PlayerController pc;
+
+  const _ArtworkCard(
+      {required this.song, required this.artSize, required this.pc});
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isOffline =
+        (song?.extras?['url'] ?? '').contains('file');
+    final settingsController = Get.find<SettingsScreenController>();
+
+    return GestureDetector(
+      onTap: () => pc.showLyrics(),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(115),
+              blurRadius: 40,
+              offset: const Offset(0, 16),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: SizedBox(
+            width: artSize,
+            height: artSize,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // ── Artwork image ──────────────────────────────────────
+                isOffline
+                    ? ImageWidget(size: artSize, song: song, isPlayerArtImage: true)
+                    : CachedNetworkImage(
+                        imageUrl: song.artUri.toString(),
+                        cacheKey: "${song.id}_song",
+                        memCacheHeight: 400,
+                        fit: BoxFit.cover,
+                        imageBuilder: (context, imageProvider) {
+                          // Extract accent color when image loads
+                          if (settingsController.themeModetype.value ==
+                              ThemeType.dynamic) {
+                            Future.delayed(
+                              const Duration(milliseconds: 60),
+                              () => pc.extractAlbumColor(
+                                  imageProvider, song.id),
+                            );
+                          }
+                          return Image(image: imageProvider, fit: BoxFit.cover);
+                        },
+                        errorWidget: (c, u, e) => ImageWidget(
+                            size: artSize,
+                            song: song,
+                            isPlayerArtImage: true),
+                        progressIndicatorBuilder: (_, __, ___) =>
+                            const LoadingIndicator(),
+                      ),
+
+                // ── Lyrics overlay (shown when showLyricsflag is true) ─
+                Obx(() => pc.showLyricsflag.value
+                    ? _LyricsOverlay(pc: pc, artSize: artSize)
+                    : const SizedBox.shrink()),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LYRICS OVERLAY
+// ─────────────────────────────────────────────────────────────────────────────
+class _LyricsOverlay extends StatelessWidget {
+  final PlayerController pc;
+  final double artSize;
+
+  const _LyricsOverlay({required this.pc, required this.artSize});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          color: Colors.black.withAlpha(178),
+          child: Column(
+            children: [
+              // ── Synced / Plain switch + three-dots ──────────────────
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Obx(() => ToggleSwitch(
+                            minWidth: 72,
+                            minHeight: 28,
+                            cornerRadius: 20,
+                            fontSize: 11,
+                            activeBgColors: [
+                              [
+                                Theme.of(context)
+                                    .primaryColor
+                                    .withLightness(0.45)
+                              ],
+                              [
+                                Theme.of(context)
+                                    .primaryColor
+                                    .withLightness(0.45)
+                              ]
+                            ],
+                            activeFgColor: Colors.white,
+                            inactiveBgColor: Colors.white.withAlpha(26),
+                            inactiveFgColor: Colors.white70,
+                            initialLabelIndex: pc.lyricsMode.value,
+                            totalSwitches: 2,
+                            labels: ['synced'.tr, 'plain'.tr],
+                            radiusStyle: true,
+                            onToggle: pc.changeLyricsMode,
+                          )),
+                    ),
+                    // Three-dots popup menu
+                    _LyricsMenuButton(pc: pc),
+                  ],
+                ),
+              ),
+
+              // ── Lyrics content ───────────────────────────────────────
+              const Expanded(
+                child: LyricsWidget(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 8),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LYRICS THREE-DOTS POPUP MENU
+// ─────────────────────────────────────────────────────────────────────────────
+class _LyricsMenuButton extends StatelessWidget {
+  final PlayerController pc;
+  const _LyricsMenuButton({required this.pc});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.more_horiz_rounded,
+          color: Colors.white70, size: 22),
+      color: Theme.of(context).cardColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      itemBuilder: (_) => [
+        PopupMenuItem(
+          value: 'synced',
+          child: Obx(() => Row(children: [
+                Icon(Icons.sync_rounded,
+                    size: 18,
+                    color: pc.lyricsMode.value == 0
+                        ? Theme.of(context).colorScheme.primary
+                        : null),
+                const SizedBox(width: 8),
+                Text("showSyncedLyrics".tr,
+                    style: pc.lyricsMode.value == 0
+                        ? TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.bold)
+                        : null),
+              ])),
+        ),
+        PopupMenuItem(
+          value: 'plain',
+          child: Obx(() => Row(children: [
+                Icon(Icons.text_fields_rounded,
+                    size: 18,
+                    color: pc.lyricsMode.value == 1
+                        ? Theme.of(context).colorScheme.primary
+                        : null),
+                const SizedBox(width: 8),
+                Text("showPlainLyrics".tr,
+                    style: pc.lyricsMode.value == 1
+                        ? TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.bold)
+                        : null),
+              ])),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: 'edit',
+          child: Row(children: [
+            const Icon(Icons.edit_rounded, size: 18),
+            const SizedBox(width: 8),
+            Text("editLyrics".tr),
+          ]),
+        ),
+        PopupMenuItem(
+          value: 'search',
+          child: Row(children: [
+            const Icon(Icons.search_rounded, size: 18),
+            const SizedBox(width: 8),
+            Text("searchLyricsOnline".tr),
+          ]),
+        ),
+        PopupMenuItem(
+          value: 'fetch',
+          child: Row(children: [
+            const Icon(Icons.refresh_rounded, size: 18),
+            const SizedBox(width: 8),
+            Text("fetchLyricsAgain".tr),
+          ]),
+        ),
+      ],
+      onSelected: (val) async {
+        switch (val) {
+          case 'synced':
+            pc.changeLyricsMode(0);
+            break;
+          case 'plain':
+            pc.changeLyricsMode(1);
+            break;
+          case 'fetch':
+            await pc.refetchLyrics();
+            break;
+          case 'search':
+            final query =
+                '${pc.currentSong.value?.title ?? ''} ${pc.currentSong.value?.artist ?? ''} lyrics';
+            await _launchLyricsSearch(query);
+            break;
+          case 'edit':
+            _showInlineEditor(context);
+            break;
+        }
+      },
+    );
+  }
+
+  Future<void> _launchLyricsSearch(String query) async {
+    final uri = Uri.https('www.google.com', '/search', {'q': query});
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      ScaffoldMessenger.of(Get.context!).showSnackBar(SnackBar(
+        content: Text('Search: $query'),
+        duration: const Duration(seconds: 2),
+      ));
+    }
+  }
+
+  void _showInlineEditor(BuildContext context) {
+    final currentPlain = pc.lyrics['plainLyrics'] ?? '';
+    final textController =
+        TextEditingController(text: currentPlain == 'NA' ? '' : currentPlain);
+
+    showModalBottomSheet(
+      context: pc.homeScaffoldkey.currentState!.context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _LyricsInlineEditor(
+        controller: textController,
+        pc: pc,
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INLINE LYRICS EDITOR
+// ─────────────────────────────────────────────────────────────────────────────
+class _LyricsInlineEditor extends StatelessWidget {
+  final TextEditingController controller;
+  final PlayerController pc;
+
+  const _LyricsInlineEditor(
+      {required this.controller, required this.pc});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 10),
+              height: 4,
+              width: 40,
+              decoration: BoxDecoration(
+                color: Colors.white38,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'editLyrics'.tr,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium!
+                          .copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: Text('cancel'.tr),
+                  ),
+                  const SizedBox(width: 4),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
+                    ),
+                    onPressed: () {
+                      final newText = controller.text.trim();
+                      pc.lyrics.value = {
+                        'synced': '',
+                        'plainLyrics': newText.isEmpty ? 'NA' : newText,
+                      };
+                      pc.changeLyricsMode(1);
+                      Navigator.pop(context);
+                    },
+                    child: Text('save'.tr),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              constraints:
+                  const BoxConstraints(minHeight: 180, maxHeight: 380),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: TextField(
+                controller: controller,
+                maxLines: null,
+                expands: true,
+                autofocus: true,
+                style: const TextStyle(fontSize: 14, height: 1.6),
+                decoration: InputDecoration(
+                  hintText: 'Paste or type lyrics here...',
+                  hintStyle: const TextStyle(color: Colors.white38),
+                  filled: true,
+                  fillColor: Colors.white.withAlpha(13),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PILL PLAY / PAUSE BUTTON
+// ─────────────────────────────────────────────────────────────────────────────
 class _PillPlayPauseButton extends StatefulWidget {
-  final PlayerController playerController;
-  const _PillPlayPauseButton({required this.playerController});
+  final PlayerController pc;
+  const _PillPlayPauseButton({required this.pc});
 
   @override
   State<_PillPlayPauseButton> createState() => _PillPlayPauseButtonState();
@@ -428,34 +731,36 @@ class _PillPlayPauseButtonState extends State<_PillPlayPauseButton>
         _anim.reverse();
       }
 
-      final accentColor = Theme.of(context).colorScheme.primary;
-      final onAccentColor = Theme.of(context).colorScheme.onPrimary;
+      // Use extracted accent color if available, else theme primary
+      final accentColor = controller.extractedAccentColor.value ??
+          Theme.of(context).colorScheme.primary;
+      final onAccent = accentColor.computeLuminance() > 0.35
+          ? Colors.black87
+          : Colors.white;
 
       return GestureDetector(
         onTap: () => isPlaying ? controller.pause() : controller.play(),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 220),
           height: 58,
           decoration: BoxDecoration(
             color: accentColor,
             borderRadius: BorderRadius.circular(32),
             boxShadow: [
               BoxShadow(
-                color: accentColor.withOpacity(0.40),
-                blurRadius: 20,
+                color: accentColor.withAlpha(102),
+                blurRadius: 22,
                 offset: const Offset(0, 8),
               ),
             ],
           ),
           child: Center(
             child: isLoading
-                ? const LoadingIndicator(
-                    dimension: 24,
-                  )
+                ? const LoadingIndicator(dimension: 24)
                 : AnimatedIcon(
                     icon: AnimatedIcons.play_pause,
                     progress: _anim,
-                    color: onAccentColor,
+                    color: onAccent,
                     size: 32,
                   ),
           ),
@@ -465,45 +770,61 @@ class _PillPlayPauseButtonState extends State<_PillPlayPauseButton>
   }
 }
 
-// ── Circular control button (Skip Prev / Skip Next) ──────────────────────────
-class _CircularControlButton extends StatelessWidget {
+// ─────────────────────────────────────────────────────────────────────────────
+// CIRCULAR SKIP BUTTON (uses extracted accent as subtle tint)
+// ─────────────────────────────────────────────────────────────────────────────
+class _CircularSkipButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
+  final PlayerController pc;
   final double size;
 
-  const _CircularControlButton({
+  const _CircularSkipButton({
     required this.icon,
     required this.onTap,
+    required this.pc,
     this.size = 52,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: Theme.of(context).textTheme.titleLarge!.color!.withOpacity(0.10),
-          shape: BoxShape.circle,
-        ),
-        child: Center(
-          child: Icon(
-            icon,
-            color: Theme.of(context).textTheme.titleMedium!.color,
-            size: size * 0.50,
+    return Obx(() {
+      final accentColor = pc.extractedAccentColor.value ??
+          Theme.of(context).textTheme.titleLarge!.color!.withAlpha(26);
+      final bgColor = pc.extractedAccentColor.value != null
+          ? accentColor.withAlpha(51) // 20% opacity tint
+          : Colors.white.withAlpha(20);
+
+      return GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: bgColor,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Icon(
+              icon,
+              color: Theme.of(context).textTheme.titleMedium!.color,
+              size: size * 0.50,
+            ),
           ),
         ),
-      ),
-    );
+      );
+    });
   }
 }
 
-// ── Squiggly progress seek bar with time labels ──────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// SQUIGGLY PROGRESS BAR
+// ─────────────────────────────────────────────────────────────────────────────
 class _SquigglyProgressBar extends StatelessWidget {
-  final PlayerController playerController;
-  const _SquigglyProgressBar({required this.playerController});
+  final PlayerController pc;
+  final SettingsScreenController sc;
+  const _SquigglyProgressBar({required this.pc, required this.sc});
 
   static String _fmt(Duration d) {
     final m = d.inMinutes;
@@ -514,12 +835,12 @@ class _SquigglyProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetX<PlayerController>(builder: (controller) {
-      final isPlaying =
-          controller.buttonState.value == PlayButtonState.playing;
-      final maxMs = controller.progressBarStatus.value.total.inMilliseconds
-          .toDouble();
-      final curMs = controller.progressBarStatus.value.current.inMilliseconds
-          .toDouble();
+      final isPlaying = controller.buttonState.value == PlayButtonState.playing;
+      final wavyEnabled = sc.squigglySliderEnabled.value;
+      final maxMs =
+          controller.progressBarStatus.value.total.inMilliseconds.toDouble();
+      final curMs =
+          controller.progressBarStatus.value.current.inMilliseconds.toDouble();
       final maxVal = maxMs > 0 ? maxMs : 1.0;
       final curVal = curMs.clamp(0.0, maxVal);
 
@@ -529,24 +850,25 @@ class _SquigglyProgressBar extends StatelessWidget {
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
               trackHeight: 3.0,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+              thumbShape:
+                  const RoundSliderThumbShape(enabledThumbRadius: 6),
+              overlayShape:
+                  const RoundSliderOverlayShape(overlayRadius: 14),
             ),
             child: SquigglySlider(
               value: curVal,
               min: 0.0,
               max: maxVal,
-              activeColor:
-                  Theme.of(context).sliderTheme.activeTrackColor,
+              activeColor: Theme.of(context).sliderTheme.activeTrackColor,
               inactiveColor:
                   Theme.of(context).sliderTheme.inactiveTrackColor,
               thumbColor: Theme.of(context).sliderTheme.thumbColor,
-              squiggleAmplitude: isPlaying ? 4.0 : 0.0,
+              squiggleAmplitude:
+                  wavyEnabled && isPlaying ? 4.0 : 0.0,
               squiggleWavelength: 5.0,
-              squiggleSpeed: isPlaying ? 0.06 : 0.0,
-              onChanged: (v) {
-                controller.seek(Duration(milliseconds: v.toInt()));
-              },
+              squiggleSpeed: wavyEnabled && isPlaying ? 0.06 : 0.0,
+              onChanged: (v) =>
+                  controller.seek(Duration(milliseconds: v.toInt())),
             ),
           ),
           Padding(
@@ -574,5 +896,37 @@ class _SquigglyProgressBar extends StatelessWidget {
         ],
       );
     });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FOOTER ICON BUTTON
+// ─────────────────────────────────────────────────────────────────────────────
+class _FooterIconBtn extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool active;
+  final Color? activeColor;
+
+  const _FooterIconBtn({
+    required this.icon,
+    required this.onTap,
+    this.active = false,
+    this.activeColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final baseColor = Theme.of(context).textTheme.titleLarge!.color!;
+    return IconButton(
+      onPressed: onTap,
+      icon: Icon(
+        icon,
+        color: active
+            ? (activeColor ?? baseColor)
+            : baseColor.withAlpha(77),
+        size: 24,
+      ),
+    );
   }
 }
