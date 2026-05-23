@@ -136,13 +136,26 @@ class HomeScreenController extends GetxController {
       } else if (contentType == "BOLI") {
         try {
           final songId = box.get("recentSongId");
-          if (songId != null) {
+          if (songId != null && songId.isNotEmpty && !songId.contains("file")) {
             final rel = (await _musicServices.getContentRelatedToSong(
                 songId, getContentHlCode()));
-            final con = rel.removeAt(0);
-            quickPicks.value =
-                QuickPicks(List<MediaItem>.from(con["contents"]));
-            middleContentTemp.addAll(rel);
+            if (rel != null && rel.isNotEmpty) {
+              final con = rel.removeAt(0);
+              quickPicks.value =
+                  QuickPicks(List<MediaItem>.from(con["contents"]));
+              middleContentTemp.addAll(rel);
+            }
+          } else {
+            // Fallback if recentSongId is empty or is an offline file path
+            List charts = await _musicServices.getCharts("QP");
+            final chartIndex = charts.indexWhere((element) =>
+                element['title'] == "Trending" || element['title'] == "Top Music Videos");
+            if (chartIndex != -1) {
+              quickPicks.value = QuickPicks(
+                  List<MediaItem>.from(charts[chartIndex]["contents"]),
+                  title: charts[chartIndex]['title']);
+              middleContentTemp.addAll(charts);
+            }
           }
         } catch (e) {
           printERROR(
@@ -153,9 +166,36 @@ class HomeScreenController extends GetxController {
       if (quickPicks.value.songList.isEmpty) {
         final index = homeContentListMap
             .indexWhere((element) => element['title'] == "Quick picks");
-        final con = homeContentListMap.removeAt(index);
-        quickPicks.value = QuickPicks(List<MediaItem>.from(con["contents"]),
-            title: "Quick picks");
+        if (index != -1) {
+          final con = homeContentListMap.removeAt(index);
+          quickPicks.value = QuickPicks(List<MediaItem>.from(con["contents"]),
+              title: "Quick picks");
+        } else if (homeContentListMap.isNotEmpty) {
+          final fallbackIndex = homeContentListMap.indexWhere((element) =>
+              element['contents'] != null &&
+              element['contents'].isNotEmpty &&
+              element['contents'][0].runtimeType == MediaItem);
+          if (fallbackIndex != -1) {
+            final con = homeContentListMap.removeAt(fallbackIndex);
+            quickPicks.value = QuickPicks(List<MediaItem>.from(con["contents"]),
+                title: con["title"] ?? "Quick picks");
+          } else {
+            // Ultimate fallback to trending charts
+            try {
+              List charts = await _musicServices.getCharts("QP");
+              final chartIndex = charts.indexWhere((element) =>
+                  element['title'] == "Trending" || element['title'] == "Top Music Videos");
+              if (chartIndex != -1) {
+                quickPicks.value = QuickPicks(
+                    List<MediaItem>.from(charts[chartIndex]["contents"]),
+                    title: charts[chartIndex]['title']);
+                middleContentTemp.addAll(charts);
+              }
+            } catch (e) {
+              printERROR("Error loading trending fallback: $e");
+            }
+          }
+        }
       }
 
       middleContent.value = _setContentList(middleContentTemp);
