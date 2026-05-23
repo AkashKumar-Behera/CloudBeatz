@@ -182,8 +182,45 @@ class ModernPlayer extends StatelessWidget {
                 ),
               ),
 
+              // ── Queue drag handle ─────────────────────────────────────────
+              GestureDetector(
+                onVerticalDragUpdate: (details) {
+                  if (details.delta.dy < -6) {
+                    if (GetPlatform.isDesktop) {
+                      pc.homeScaffoldkey.currentState!.openEndDrawer();
+                    } else {
+                      pc.queuePanelController.open();
+                    }
+                  }
+                },
+                child: SizedBox(
+                  height: 28,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(60),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Icon(
+                          Icons.queue_music_rounded,
+                          size: 14,
+                          color: Colors.white.withAlpha(60),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
               // ── Footer bar ───────────────────────────────────────────────
-              SizedBox(height: bottomPad > 0 ? 10 : 18),
+              SizedBox(height: bottomPad > 0 ? 4 : 10),
               Padding(
                 padding: EdgeInsets.only(
                     left: 28,
@@ -404,37 +441,37 @@ class _LyricsOverlay extends StatelessWidget {
               // ── Synced / Plain switch + three-dots ──────────────────
               Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    const EdgeInsets.only(left: 10, right: 6, top: 6, bottom: 6),
                 child: Row(
                   children: [
-                    Expanded(
-                      child: Obx(() => ToggleSwitch(
-                            minWidth: 72,
-                            minHeight: 28,
-                            cornerRadius: 20,
-                            fontSize: 11,
-                            activeBgColors: [
-                              [
-                                Theme.of(context)
-                                    .primaryColor
-                                    .withLightness(0.45)
-                              ],
-                              [
-                                Theme.of(context)
-                                    .primaryColor
-                                    .withLightness(0.45)
-                              ]
+                    // Fixed-width pill toggle — does NOT expand to fill row
+                    Obx(() => ToggleSwitch(
+                          minWidth: 68,
+                          minHeight: 28,
+                          cornerRadius: 20,
+                          fontSize: 11,
+                          activeBgColors: [
+                            [
+                              Theme.of(context)
+                                  .primaryColor
+                                  .withLightness(0.45)
                             ],
-                            activeFgColor: Colors.white,
-                            inactiveBgColor: Colors.white.withAlpha(26),
-                            inactiveFgColor: Colors.white70,
-                            initialLabelIndex: pc.lyricsMode.value,
-                            totalSwitches: 2,
-                            labels: ['synced'.tr, 'plain'.tr],
-                            radiusStyle: true,
-                            onToggle: pc.changeLyricsMode,
-                          )),
-                    ),
+                            [
+                              Theme.of(context)
+                                  .primaryColor
+                                  .withLightness(0.45)
+                            ]
+                          ],
+                          activeFgColor: Colors.white,
+                          inactiveBgColor: Colors.white.withAlpha(26),
+                          inactiveFgColor: Colors.white70,
+                          initialLabelIndex: pc.lyricsMode.value,
+                          totalSwitches: 2,
+                          labels: ['synced'.tr, 'plain'.tr],
+                          radiusStyle: true,
+                          onToggle: pc.changeLyricsMode,
+                        )),
+                    const Spacer(),
                     // Three-dots popup menu
                     _LyricsMenuButton(pc: pc),
                   ],
@@ -465,94 +502,100 @@ class _LyricsMenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_horiz_rounded,
-          color: Colors.white70, size: 22),
-      color: Theme.of(context).cardColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      itemBuilder: (_) => [
-        PopupMenuItem(
-          value: 'synced',
-          child: Obx(() => Row(children: [
-                Icon(Icons.sync_rounded,
-                    size: 18,
-                    color: pc.lyricsMode.value == 0
-                        ? Theme.of(context).colorScheme.primary
-                        : null),
-                const SizedBox(width: 8),
-                Text("showSyncedLyrics".tr,
-                    style: pc.lyricsMode.value == 0
-                        ? TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.bold)
-                        : null),
-              ])),
-        ),
-        PopupMenuItem(
-          value: 'plain',
-          child: Obx(() => Row(children: [
-                Icon(Icons.text_fields_rounded,
-                    size: 18,
-                    color: pc.lyricsMode.value == 1
-                        ? Theme.of(context).colorScheme.primary
-                        : null),
-                const SizedBox(width: 8),
-                Text("showPlainLyrics".tr,
-                    style: pc.lyricsMode.value == 1
-                        ? TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.bold)
-                        : null),
-              ])),
-        ),
-        const PopupMenuDivider(),
-        PopupMenuItem(
-          value: 'edit',
-          child: Row(children: [
-            const Icon(Icons.edit_rounded, size: 18),
-            const SizedBox(width: 8),
-            Text("editLyrics".tr),
-          ]),
-        ),
-        PopupMenuItem(
-          value: 'search',
-          child: Row(children: [
-            const Icon(Icons.search_rounded, size: 18),
-            const SizedBox(width: 8),
-            Text("searchLyricsOnline".tr),
-          ]),
-        ),
-        PopupMenuItem(
-          value: 'fetch',
-          child: Row(children: [
-            const Icon(Icons.refresh_rounded, size: 18),
-            const SizedBox(width: 8),
-            Text("fetchLyricsAgain".tr),
-          ]),
-        ),
-      ],
-      onSelected: (val) async {
-        switch (val) {
-          case 'synced':
-            pc.changeLyricsMode(0);
-            break;
-          case 'plain':
-            pc.changeLyricsMode(1);
-            break;
-          case 'fetch':
-            await pc.refetchLyrics();
-            break;
-          case 'search':
-            final query =
-                '${pc.currentSong.value?.title ?? ''} ${pc.currentSong.value?.artist ?? ''} lyrics';
-            await _launchLyricsSearch(query);
-            break;
-          case 'edit':
-            _showInlineEditor(context);
-            break;
-        }
-      },
-    );
+    // Read mode synchronously at build time so selection icon shows correctly
+    return Obx(() {
+      final mode = pc.lyricsMode.value;
+      return PopupMenuButton<String>(
+        icon: const Icon(Icons.more_horiz_rounded,
+            color: Colors.white70, size: 22),
+        color: Theme.of(context).cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        itemBuilder: (_) => [
+          PopupMenuItem(
+            value: 'synced',
+            child: Row(children: [
+              Icon(Icons.sync_rounded,
+                  size: 18,
+                  color: mode == 0
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).textTheme.bodyMedium?.color),
+              const SizedBox(width: 8),
+              Text("showSyncedLyrics".tr,
+                  style: mode == 0
+                      ? TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.bold)
+                      : null),
+              if (mode == 0) ...[const Spacer(), const Icon(Icons.check, size: 16)],
+            ]),
+          ),
+          PopupMenuItem(
+            value: 'plain',
+            child: Row(children: [
+              Icon(Icons.text_fields_rounded,
+                  size: 18,
+                  color: mode == 1
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).textTheme.bodyMedium?.color),
+              const SizedBox(width: 8),
+              Text("showPlainLyrics".tr,
+                  style: mode == 1
+                      ? TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.bold)
+                      : null),
+              if (mode == 1) ...[const Spacer(), const Icon(Icons.check, size: 16)],
+            ]),
+          ),
+          const PopupMenuDivider(),
+          PopupMenuItem(
+            value: 'edit',
+            child: Row(children: [
+              const Icon(Icons.edit_rounded, size: 18),
+              const SizedBox(width: 8),
+              Text("editLyrics".tr),
+            ]),
+          ),
+          PopupMenuItem(
+            value: 'search',
+            child: Row(children: [
+              const Icon(Icons.search_rounded, size: 18),
+              const SizedBox(width: 8),
+              Text("searchLyricsOnline".tr),
+            ]),
+          ),
+          PopupMenuItem(
+            value: 'fetch',
+            child: Row(children: [
+              const Icon(Icons.refresh_rounded, size: 18),
+              const SizedBox(width: 8),
+              Text("fetchLyricsAgain".tr),
+            ]),
+          ),
+        ],
+        onSelected: (val) async {
+          switch (val) {
+            case 'synced':
+              pc.changeLyricsMode(0);
+              break;
+            case 'plain':
+              pc.changeLyricsMode(1);
+              break;
+            case 'fetch':
+              await pc.refetchLyrics();
+              break;
+            case 'search':
+              final query =
+                  '${pc.currentSong.value?.title ?? ''} ${pc.currentSong.value?.artist ?? ''} lyrics';
+              await _launchLyricsSearch(query);
+              break;
+            case 'edit':
+              _showInlineEditor(context);
+              break;
+          }
+        },
+      );
+    });
   }
 
   Future<void> _launchLyricsSearch(String query) async {
@@ -745,7 +788,8 @@ class _PillPlayPauseButtonState extends State<_PillPlayPauseButton>
           height: 58,
           decoration: BoxDecoration(
             color: accentColor,
-            borderRadius: BorderRadius.circular(32),
+            // Animate: full pill when paused, rounded rect when playing
+            borderRadius: BorderRadius.circular(isPlaying ? 14 : 32),
             boxShadow: [
               BoxShadow(
                 color: accentColor.withAlpha(102),
@@ -864,9 +908,9 @@ class _SquigglyProgressBar extends StatelessWidget {
                   Theme.of(context).sliderTheme.inactiveTrackColor,
               thumbColor: Theme.of(context).sliderTheme.thumbColor,
               squiggleAmplitude:
-                  wavyEnabled && isPlaying ? 4.0 : 0.0,
-              squiggleWavelength: 5.0,
-              squiggleSpeed: wavyEnabled && isPlaying ? 0.06 : 0.0,
+                  wavyEnabled && isPlaying ? 2.0 : 0.0,
+              squiggleWavelength: 10.0,
+              squiggleSpeed: wavyEnabled && isPlaying ? 0.05 : 0.0,
               onChanged: (v) =>
                   controller.seek(Duration(milliseconds: v.toInt())),
             ),
