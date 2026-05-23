@@ -48,6 +48,9 @@ class SettingsScreenController extends GetxController {
   final restorePlaybackSession = false.obs;
   final cacheHomeScreenData = true.obs;
   final squigglySliderEnabled = true.obs;
+  final squigglyAmplitude = 2.0.obs;
+  final squigglyWavelength = 10.0.obs;
+  final squigglySpeed = 0.05.obs;
   final currentVersion = "V1.12.2";
 
   @override
@@ -102,6 +105,9 @@ class SettingsScreenController extends GetxController {
         setBox.get("restrorePlaybackSession") ?? false;
     cacheHomeScreenData.value = setBox.get("cacheHomeScreenData") ?? true;
     squigglySliderEnabled.value = setBox.get("squigglySliderEnabled") ?? true;
+    squigglyAmplitude.value = (setBox.get("squigglyAmplitude") ?? 2.0).toDouble();
+    squigglyWavelength.value = (setBox.get("squigglyWavelength") ?? 10.0).toDouble();
+    squigglySpeed.value = (setBox.get("squigglySpeed") ?? 0.05).toDouble();
     streamingQuality.value =
         AudioQuality.values[setBox.get('streamingQuality')];
     playerUi.value = isDesktop ? 0 : (setBox.get('playerUi') ?? 0);
@@ -159,6 +165,21 @@ class SettingsScreenController extends GetxController {
   void toggleSquigglySlider(bool val) {
     setBox.put("squigglySliderEnabled", val);
     squigglySliderEnabled.value = val;
+  }
+
+  void setSquigglyAmplitude(double val) {
+    setBox.put("squigglyAmplitude", val);
+    squigglyAmplitude.value = val;
+  }
+
+  void setSquigglyWavelength(double val) {
+    setBox.put("squigglyWavelength", val);
+    squigglyWavelength.value = val;
+  }
+
+  void setSquigglySpeed(double val) {
+    setBox.put("squigglySpeed", val);
+    squigglySpeed.value = val;
   }
 
   void enableBottomNavBar(bool val) {
