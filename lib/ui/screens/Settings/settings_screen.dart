@@ -168,19 +168,73 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   if (!isDesktop)
                     Obx(() => settingsController.playerUi.value >= 0
-                        ? ListTile(
-                            contentPadding:
-                                const EdgeInsets.only(left: 5, right: 10),
-                            title: Text("wavyProgressBar".tr),
-                            subtitle: Text("wavyProgressBarDes".tr,
-                                style: Theme.of(context).textTheme.bodyMedium),
-                            trailing: Obx(
-                              () => CustSwitch(
-                                  value: settingsController
-                                      .squigglySliderEnabled.value,
-                                  onChanged:
-                                      settingsController.toggleSquigglySlider),
-                            ))
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ListTile(
+                                contentPadding:
+                                    const EdgeInsets.only(left: 5, right: 10),
+                                title: Text("wavyProgressBar".tr),
+                                subtitle: Text("wavyProgressBarDes".tr,
+                                    style:
+                                        Theme.of(context).textTheme.bodyMedium),
+                                trailing: Obx(
+                                  () => CustSwitch(
+                                      value: settingsController
+                                          .squigglySliderEnabled.value,
+                                      onChanged: settingsController
+                                          .toggleSquigglySlider),
+                                ),
+                              ),
+                              Obx(() => settingsController
+                                      .squigglySliderEnabled.value
+                                  ? Padding(
+                                      padding: const EdgeInsets.only(
+                                          left: 5, right: 10, bottom: 8),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          // Amplitude
+                                          Obx(() => _WaveSliderTile(
+                                                label:
+                                                    "Wave Height (Amplitude): ${settingsController.squigglyAmplitude.value.toStringAsFixed(1)}",
+                                                value: settingsController
+                                                    .squigglyAmplitude.value,
+                                                min: 0.0,
+                                                max: 10.0,
+                                                onChanged: settingsController
+                                                    .setSquigglyAmplitude,
+                                              )),
+                                          // Wavelength
+                                          Obx(() => _WaveSliderTile(
+                                                label:
+                                                    "Wave Width (Wavelength): ${settingsController.squigglyWavelength.value.toStringAsFixed(1)}",
+                                                value: settingsController
+                                                    .squigglyWavelength.value,
+                                                min: 1.0,
+                                                max: 40.0,
+                                                onChanged: settingsController
+                                                    .setSquigglyWavelength,
+                                              )),
+                                          // Speed
+                                          Obx(() => _WaveSliderTile(
+                                                label:
+                                                    "Wave Speed: ${settingsController.squigglySpeed.value.toStringAsFixed(3)}",
+                                                value: settingsController
+                                                    .squigglySpeed.value,
+                                                min: 0.0,
+                                                max: 0.2,
+                                                divisions: 40,
+                                                onChanged: settingsController
+                                                    .setSquigglySpeed,
+                                              )),
+                                        ],
+                                      ),
+                                    )
+                                  : const SizedBox.shrink()),
+                            ],
+                          )
                         : const SizedBox.shrink()),
                   if (!isDesktop)
                     ListTile(
@@ -862,4 +916,56 @@ Widget radioWidget(
                 : controller.onContentChange),
         title: Text(label),
       ));
+}
+
+/// A compact slider row used for wave animation parameter tuning.
+class _WaveSliderTile extends StatelessWidget {
+  final String label;
+  final double value;
+  final double min;
+  final double max;
+  final int? divisions;
+  final ValueChanged<double> onChanged;
+
+  const _WaveSliderTile({
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+    this.divisions,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, top: 8),
+          child: Text(
+            label,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium!
+                .copyWith(fontSize: 12, fontWeight: FontWeight.w500),
+          ),
+        ),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 2.5,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+          ),
+          child: Slider(
+            value: value.clamp(min, max),
+            min: min,
+            max: max,
+            divisions: divisions ?? 20,
+            onChanged: onChanged,
+          ),
+        ),
+      ],
+    );
+  }
 }
