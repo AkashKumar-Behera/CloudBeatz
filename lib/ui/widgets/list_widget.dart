@@ -58,7 +58,7 @@ class ListWidget extends StatelessWidget with RemoveSongFromPlaylistMixin {
               height: items.length * 75.0,
               child: listViewSongVid(items),
             );
-    } else if (title.contains("playlists")) {
+    } else if (title.toLowerCase().contains("playlists")) {
       return listViewPlaylists(items, sc: scrollController);
     } else if (title == "Albums" || title == "Singles") {
       return listViewAlbums(items, sc: scrollController);
