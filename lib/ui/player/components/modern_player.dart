@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:squiggly_slider/slider.dart';
-import 'package:toggle_switch/toggle_switch.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:widget_marquee/widget_marquee.dart';
 
@@ -438,41 +437,13 @@ class _LyricsOverlay extends StatelessWidget {
           color: Colors.black.withAlpha(178),
           child: Column(
             children: [
-              // ── Synced / Plain switch + three-dots ──────────────────
+              // ── Three-dots menu row (top-right only, no toggle switch) ──────────
               Padding(
                 padding:
-                    const EdgeInsets.only(left: 10, right: 6, top: 6, bottom: 6),
+                    const EdgeInsets.only(left: 10, right: 6, top: 6, bottom: 2),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    // Fixed-width pill toggle — does NOT expand to fill row
-                    Obx(() => ToggleSwitch(
-                          minWidth: 68,
-                          minHeight: 28,
-                          cornerRadius: 20,
-                          fontSize: 11,
-                          activeBgColors: [
-                            [
-                              Theme.of(context)
-                                  .primaryColor
-                                  .withLightness(0.45)
-                            ],
-                            [
-                              Theme.of(context)
-                                  .primaryColor
-                                  .withLightness(0.45)
-                            ]
-                          ],
-                          activeFgColor: Colors.white,
-                          inactiveBgColor: Colors.white.withAlpha(26),
-                          inactiveFgColor: Colors.white70,
-                          initialLabelIndex: pc.lyricsMode.value,
-                          totalSwitches: 2,
-                          labels: ['synced'.tr, 'plain'.tr],
-                          radiusStyle: true,
-                          onToggle: pc.changeLyricsMode,
-                        )),
-                    const Spacer(),
-                    // Three-dots popup menu
                     _LyricsMenuButton(pc: pc),
                   ],
                 ),

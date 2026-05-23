@@ -167,7 +167,7 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                   if (!isDesktop)
-                    Obx(() => settingsController.playerUi.value == 1
+                    Obx(() => settingsController.playerUi.value >= 0
                         ? ListTile(
                             contentPadding:
                                 const EdgeInsets.only(left: 5, right: 10),

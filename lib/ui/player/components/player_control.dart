@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:widget_marquee/widget_marquee.dart';
 
 import '/ui/player/components/animated_play_button.dart';
+import '/ui/screens/Settings/settings_screen_controller.dart';
 import '../player_controller.dart';
 
 class PlayerControlWidget extends StatelessWidget {
@@ -103,20 +104,23 @@ class PlayerControlWidget extends StatelessWidget {
               children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                  child: SquigglySlider(
-                    value: currentVal,
-                    min: 0.0,
-                    max: maxVal,
-                    activeColor: Theme.of(context).sliderTheme.activeTrackColor,
-                    inactiveColor: Theme.of(context).sliderTheme.inactiveTrackColor,
-                    thumbColor: Theme.of(context).sliderTheme.thumbColor,
-                    squiggleAmplitude: isPlaying ? 3.5 : 0.0,
-                    squiggleWavelength: 5.0,
-                    squiggleSpeed: isPlaying ? 0.05 : 0.0,
-                    onChanged: (value) {
-                      controller.seek(Duration(milliseconds: value.toInt()));
-                    },
-                  ),
+                  child: Obx(() {
+                    final wavyEnabled = Get.find<SettingsScreenController>().squigglySliderEnabled.value;
+                    return SquigglySlider(
+                      value: currentVal,
+                      min: 0.0,
+                      max: maxVal,
+                      activeColor: Theme.of(context).sliderTheme.activeTrackColor,
+                      inactiveColor: Theme.of(context).sliderTheme.inactiveTrackColor,
+                      thumbColor: Theme.of(context).sliderTheme.thumbColor,
+                      squiggleAmplitude: wavyEnabled && isPlaying ? 2.0 : 0.0,
+                      squiggleWavelength: 10.0,
+                      squiggleSpeed: wavyEnabled && isPlaying ? 0.05 : 0.0,
+                      onChanged: (value) {
+                        controller.seek(Duration(milliseconds: value.toInt()));
+                      },
+                    );
+                  }),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 22.0),

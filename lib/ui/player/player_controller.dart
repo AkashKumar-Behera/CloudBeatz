@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter_lyric/lyric_ui/ui_netease.dart';
+import 'package:flutter_lyric/lyrics_reader.dart';
 import 'package:hive/hive.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
@@ -67,8 +67,21 @@ class PlayerController extends GetxController
   bool isDesktopLyricsDialogOpen = false;
   // 0 for play, 1 for pause, 2 for blank
   final gesturePlayerVisibleState = 2.obs;
-  final lyricUi =
-      UINetease(highlight: true, defaultSize: 20, defaultExtSize: 12);
+  final lyricUi = UINetease(
+    highlight: true,
+    // Active (playing) line — large and white (built into getPlayingMainTextStyle)
+    defaultSize: 22,
+    defaultExtSize: 14,
+    // Inactive lines — smaller to contrast with active
+    otherMainSize: 14,
+    // Left-align (Apple Music style)
+    lyricAlign: LyricAlign.LEFT,
+    // Bias: show active line at 30% from top (not center) for Apple Music feel
+    bias: 0.30,
+    // Tighter line spacing
+    lineGap: 16,
+    inlineGap: 16,
+  );
   RxMap<String, dynamic> lyrics =
       <String, dynamic>{"synced": "", "plainLyrics": ""}.obs;
   ScrollController scrollController = ScrollController();
@@ -769,28 +782,51 @@ class PlayerController extends GetxController
     lyricsMode.value = val!;
   }
 
-  /// Extract vibrant/dominant accent color from album art image for Modern Player buttons
+  /// Extract the most vibrant/saturated accent color from album art for Modern Player buttons.
+  /// Scores ALL available palette swatches by saturation so the result is deterministic
+  /// (e.g. red wins over blue for Spider-Verse because red is more saturated there).
   Future<void> extractAlbumColor(ImageProvider imageProvider, String songId) async {
     if (songId == _lastExtractedSongId) return;
     try {
       final generator = await PaletteGenerator.fromImageProvider(
-          ResizeImage(imageProvider, height: 150, width: 150));
-      // Prefer vibrant colors for buttons, fall back to dominant
-      final paletteColor = generator.vibrantColor ??
-          generator.lightVibrantColor ??
-          generator.dominantColor ??
-          generator.darkVibrantColor;
-      if (paletteColor != null) {
-        // Ensure minimum saturation so we get a rich color, not just grey
-        final hslColor = HSLColor.fromColor(paletteColor.color);
-        final richColor = hslColor.saturation < 0.25
-            ? hslColor.withSaturation(0.50).withLightness(0.45).toColor()
-            : hslColor.withLightness(
-                    hslColor.lightness.clamp(0.35, 0.60).toDouble())
-                .toColor();
-        extractedAccentColor.value = richColor;
-        _lastExtractedSongId = songId;
+          ResizeImage(imageProvider, height: 200, width: 200),
+          maximumColorCount: 32);
+
+      // Collect all non-null swatches and score them by HSL saturation
+      final candidates = <PaletteColor>[
+        if (generator.vibrantColor != null) generator.vibrantColor!,
+        if (generator.darkVibrantColor != null) generator.darkVibrantColor!,
+        if (generator.lightVibrantColor != null) generator.lightVibrantColor!,
+        if (generator.mutedColor != null) generator.mutedColor!,
+        if (generator.darkMutedColor != null) generator.darkMutedColor!,
+        if (generator.lightMutedColor != null) generator.lightMutedColor!,
+        if (generator.dominantColor != null) generator.dominantColor!,
+      ];
+
+      if (candidates.isEmpty) return;
+
+      // Pick the swatch with the highest saturation × population weight
+      PaletteColor best = candidates.first;
+      double bestScore = -1;
+      for (final c in candidates) {
+        final hsl = HSLColor.fromColor(c.color);
+        // Weight saturation heavily; add a small population bonus to break ties
+        final score = hsl.saturation * 10 + (c.population / 10000.0).clamp(0.0, 1.0);
+        if (score > bestScore) {
+          bestScore = score;
+          best = c;
+        }
       }
+
+      // Clamp lightness to a visible mid-range so the button is never too dark/bright
+      final hsl = HSLColor.fromColor(best.color);
+      final richColor = hsl
+          .withSaturation(hsl.saturation.clamp(0.40, 1.0).toDouble())
+          .withLightness(hsl.lightness.clamp(0.32, 0.60).toDouble())
+          .toColor();
+
+      extractedAccentColor.value = richColor;
+      _lastExtractedSongId = songId;
     } catch (_) {}
   }
 
