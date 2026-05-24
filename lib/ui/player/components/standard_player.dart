@@ -14,6 +14,7 @@ import 'albumart_lyrics.dart';
 import 'backgroud_image.dart';
 import 'lyrics_switch.dart';
 import 'lyrics_widget.dart';
+import 'modern_player.dart';
 import 'player_control.dart';
 
 /// Standard player widget
@@ -240,8 +241,8 @@ class _StandardLyricsLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final topPad = Get.mediaQuery.padding.top;
     final bottomPad = Get.mediaQuery.padding.bottom;
-    // Fixed bottom section: progress(~68) + gap(8) + controls(~56) + bottom padding (80 + bottomPad)
-    final bottomFixedH = 100.0 + 8.0 + 56.0 + 80.0 + bottomPad;
+    // Fixed bottom section: progress(~30) + gap(8) + controls(~56) + bottom padding (80 + bottomPad)
+    final bottomFixedH = 30.0 + 8.0 + 56.0 + 80.0 + bottomPad;
     // Fixed top section: status bar space + header row (~56)
     final topFixedH = (topPad + 8) + 56.0;
 
@@ -393,6 +394,39 @@ class _StdLyricsMenuButton extends StatelessWidget {
   final PlayerController pc;
   const _StdLyricsMenuButton({required this.pc});
 
+  void _showInlineEditor(BuildContext context) {
+    final currentPlain = pc.lyrics['plainLyrics'] ?? '';
+    final textController =
+        TextEditingController(text: currentPlain == 'NA' ? '' : currentPlain);
+
+    showModalBottomSheet(
+      context: pc.homeScaffoldkey.currentState!.context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => LyricsInlineEditor(
+        controller: textController,
+        pc: pc,
+      ),
+    );
+  }
+
+  void _showTimestampEditor(BuildContext context) {
+    final currentSynced = pc.lyrics['synced'] ?? '';
+    final textController =
+        TextEditingController(text: currentSynced == 'NA' ? '' : currentSynced);
+
+    showModalBottomSheet(
+      context: pc.homeScaffoldkey.currentState!.context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => LyricsInlineEditor(
+        controller: textController,
+        pc: pc,
+        title: "searchWithTimestamp".tr,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Obx(() {
@@ -452,6 +486,23 @@ class _StdLyricsMenuButton extends StatelessWidget {
           ),
           const PopupMenuDivider(),
           PopupMenuItem(
+            value: 'edit',
+            child: Row(children: [
+              const Icon(Icons.edit_rounded, size: 18),
+              const SizedBox(width: 8),
+              Text('editLyrics'.tr),
+            ]),
+          ),
+          PopupMenuItem(
+            value: 'timestamp',
+            child: Row(children: [
+              const Icon(Icons.timer_rounded, size: 18),
+              const SizedBox(width: 8),
+              Text('searchWithTimestamp'.tr),
+            ]),
+          ),
+          const PopupMenuDivider(),
+          PopupMenuItem(
             value: 'search',
             child: Row(children: [
               const Icon(Icons.search_rounded, size: 18),
@@ -483,6 +534,12 @@ class _StdLyricsMenuButton extends StatelessWidget {
               break;
             case 'plain':
               pc.changeLyricsMode(1);
+              break;
+            case 'edit':
+              _showInlineEditor(context);
+              break;
+            case 'timestamp':
+              _showTimestampEditor(context);
               break;
             case 'fetch':
               await pc.refetchLyrics();
