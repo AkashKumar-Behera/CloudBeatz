@@ -980,10 +980,17 @@ class _CircularSkipButton extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // SQUIGGLY PROGRESS BAR
 // ─────────────────────────────────────────────────────────────────────────────
-class _SquigglyProgressBar extends StatelessWidget {
+class _SquigglyProgressBar extends StatefulWidget {
   final PlayerController pc;
   final SettingsScreenController sc;
   const _SquigglyProgressBar({required this.pc, required this.sc});
+
+  @override
+  State<_SquigglyProgressBar> createState() => _SquigglyProgressBarState();
+}
+
+class _SquigglyProgressBarState extends State<_SquigglyProgressBar> {
+  double? _dragValue;
 
   static String _fmt(Duration d) {
     final m = d.inMinutes;
@@ -994,10 +1001,10 @@ class _SquigglyProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final wavyEnabled = sc.squigglySliderEnabled.value;
-      final amplitude = sc.squigglyAmplitude.value;
-      final wavelength = sc.squigglyWavelength.value;
-      final speed = sc.squigglySpeed.value;
+      final wavyEnabled = widget.sc.squigglySliderEnabled.value;
+      final amplitude = widget.sc.squigglyAmplitude.value;
+      final wavelength = widget.sc.squigglyWavelength.value;
+      final speed = widget.sc.squigglySpeed.value;
       return GetX<PlayerController>(builder: (controller) {
         final playing = controller.buttonState.value == PlayButtonState.playing;
         final maxMs =
@@ -1006,6 +1013,8 @@ class _SquigglyProgressBar extends StatelessWidget {
             controller.progressBarStatus.value.current.inMilliseconds.toDouble();
         final maxVal = maxMs > 0 ? maxMs : 1.0;
         final curVal = curMs.clamp(0.0, maxVal);
+
+        final displayVal = (_dragValue ?? curVal).clamp(0.0, maxVal);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1023,7 +1032,7 @@ class _SquigglyProgressBar extends StatelessWidget {
               ),
               child: SquigglySlider(
                 key: ValueKey('${wavyEnabled}_${playing}_${amplitude}_${wavelength}_${speed}'),
-                value: curVal,
+                value: displayVal,
                 min: 0.0,
                 max: maxVal,
                 activeColor: Colors.white,
@@ -1032,8 +1041,17 @@ class _SquigglyProgressBar extends StatelessWidget {
                 squiggleAmplitude: wavyEnabled && playing ? amplitude : 0.0,
                 squiggleWavelength: wavelength,
                 squiggleSpeed: wavyEnabled && playing ? speed : 0.0,
-                onChanged: (v) =>
-                    controller.seek(Duration(milliseconds: v.toInt())),
+                onChanged: (v) {
+                  setState(() {
+                    _dragValue = v;
+                  });
+                },
+                onChangeEnd: (v) {
+                  controller.seek(Duration(milliseconds: v.toInt()));
+                  setState(() {
+                    _dragValue = null;
+                  });
+                },
               ),
             ),
             Padding(
@@ -1042,7 +1060,9 @@ class _SquigglyProgressBar extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    _fmt(controller.progressBarStatus.value.current),
+                    _fmt(_dragValue != null 
+                        ? Duration(milliseconds: _dragValue!.toInt()) 
+                        : controller.progressBarStatus.value.current),
                     style: Theme.of(context)
                         .textTheme
                         .titleMedium!

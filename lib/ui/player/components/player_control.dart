@@ -9,8 +9,15 @@ import '/ui/screens/Settings/settings_screen_controller.dart';
 import '../../widgets/rectangular_slider_thumb_shape.dart';
 import '../player_controller.dart';
 
-class PlayerControlWidget extends StatelessWidget {
+class PlayerControlWidget extends StatefulWidget {
   const PlayerControlWidget({super.key});
+
+  @override
+  State<PlayerControlWidget> createState() => _PlayerControlWidgetState();
+}
+
+class _PlayerControlWidgetState extends State<PlayerControlWidget> {
+  double? _dragValue;
 
   @override
   Widget build(BuildContext context) {
@@ -101,6 +108,8 @@ class PlayerControlWidget extends StatelessWidget {
             final maxVal = maxMs > 0 ? maxMs : 1.0;
             final currentVal = currentMs.clamp(0.0, maxVal);
 
+            final displayVal = (_dragValue ?? currentVal).clamp(0.0, maxVal);
+
             return Column(
               children: [
                  Padding(
@@ -124,7 +133,7 @@ class PlayerControlWidget extends StatelessWidget {
                        ),
                        child: SquigglySlider(
                          key: ValueKey('${wavyEnabled}_${isPlaying}_${amplitude}_${wavelength}_${speed}'),
-                         value: currentVal,
+                         value: displayVal,
                          min: 0.0,
                          max: maxVal,
                          activeColor: Colors.white,
@@ -134,7 +143,15 @@ class PlayerControlWidget extends StatelessWidget {
                          squiggleWavelength: wavelength,
                          squiggleSpeed: wavyEnabled && isPlaying ? speed : 0.0,
                          onChanged: (value) {
+                           setState(() {
+                             _dragValue = value;
+                           });
+                         },
+                         onChangeEnd: (value) {
                            controller.seek(Duration(milliseconds: value.toInt()));
+                           setState(() {
+                             _dragValue = null;
+                           });
                          },
                        ),
                      );
@@ -146,7 +163,9 @@ class PlayerControlWidget extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        _formatDuration(controller.progressBarStatus.value.current),
+                        _formatDuration(_dragValue != null
+                            ? Duration(milliseconds: _dragValue!.toInt())
+                            : controller.progressBarStatus.value.current),
                         style: Theme.of(context).textTheme.titleMedium!.copyWith(fontSize: 12),
                       ),
                       Text(
