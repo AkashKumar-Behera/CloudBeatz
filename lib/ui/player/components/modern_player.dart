@@ -12,6 +12,7 @@ import '../../screens/Settings/settings_screen_controller.dart';
 import '../../widgets/image_widget.dart';
 import '../../widgets/loader.dart';
 import '../../widgets/songinfo_bottom_sheet.dart';
+import '../../widgets/rectangular_slider_thumb_shape.dart';
 import '../player_controller.dart';
 import 'backgroud_image.dart';
 import 'lyrics_widget.dart';
@@ -366,30 +367,7 @@ class _TopHeader extends StatelessWidget {
             color: Theme.of(context).textTheme.titleMedium!.color,
             onPressed: pc.playerPanelController.close,
           ),
-          Expanded(
-            child: Obx(() => Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      pc.playinfrom.value.typeString,
-                      style: Theme.of(context).textTheme.labelSmall!.copyWith(
-                          fontWeight: FontWeight.w700, letterSpacing: 0.8),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '"${pc.playinfrom.value.nameString}"',
-                      style: Theme.of(context)
-                          .textTheme
-                          .labelSmall!
-                          .copyWith(fontSize: 11),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ],
-                )),
-          ),
+          const Spacer(),
           IconButton(
             icon: const Icon(Icons.more_vert, size: 26),
             color: Theme.of(context).textTheme.titleMedium!.color,
@@ -518,6 +496,22 @@ class _ArtworkCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => pc.showLyrics(),
+      onLongPress: () {
+        if (song == null) return;
+        showModalBottomSheet(
+          constraints: const BoxConstraints(maxWidth: 500),
+          shape: const RoundedRectangleBorder(
+              borderRadius:
+                  BorderRadius.vertical(top: Radius.circular(10.0))),
+          isScrollControlled: true,
+          context: pc.homeScaffoldkey.currentState!.context,
+          barrierColor: Colors.transparent.withAlpha(100),
+          builder: (context) => SongInfoBottomSheet(
+            song,
+            calledFromPlayer: true,
+          ),
+        ).whenComplete(() => Get.delete<SongInfoController>());
+      },
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
@@ -1020,19 +1014,21 @@ class _SquigglyProgressBar extends StatelessWidget {
               data: SliderTheme.of(context).copyWith(
                 trackHeight: 3.0,
                 thumbShape:
-                    const RoundSliderThumbShape(enabledThumbRadius: 6),
+                    const RectangularSliderThumbShape(width: 4.0, height: 14.0, radius: 2.0),
                 overlayShape:
                     const RoundSliderOverlayShape(overlayRadius: 14),
+                activeTrackColor: Colors.white,
+                inactiveTrackColor: Colors.white.withAlpha(35),
+                thumbColor: Colors.white,
               ),
               child: SquigglySlider(
                 key: ValueKey('${wavyEnabled}_${playing}_${amplitude}_${wavelength}_${speed}'),
                 value: curVal,
                 min: 0.0,
                 max: maxVal,
-                activeColor: Theme.of(context).sliderTheme.activeTrackColor,
-                inactiveColor:
-                    Theme.of(context).sliderTheme.inactiveTrackColor,
-                thumbColor: Theme.of(context).sliderTheme.thumbColor,
+                activeColor: Colors.white,
+                inactiveColor: Colors.white.withAlpha(35),
+                thumbColor: Colors.white,
                 squiggleAmplitude: wavyEnabled && playing ? amplitude : 0.0,
                 squiggleWavelength: wavelength,
                 squiggleSpeed: wavyEnabled && playing ? speed : 0.0,

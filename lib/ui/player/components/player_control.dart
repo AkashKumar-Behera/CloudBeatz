@@ -6,6 +6,7 @@ import 'package:widget_marquee/widget_marquee.dart';
 
 import '/ui/player/components/animated_play_button.dart';
 import '/ui/screens/Settings/settings_screen_controller.dart';
+import '../../widgets/rectangular_slider_thumb_shape.dart';
 import '../player_controller.dart';
 
 class PlayerControlWidget extends StatelessWidget {
@@ -110,20 +111,32 @@ class PlayerControlWidget extends StatelessWidget {
                      final amplitude = sc.squigglyAmplitude.value;
                      final wavelength = sc.squigglyWavelength.value;
                      final speed = sc.squigglySpeed.value;
-                     return SquigglySlider(
-                       key: ValueKey('${wavyEnabled}_${isPlaying}_${amplitude}_${wavelength}_${speed}'),
-                       value: currentVal,
-                       min: 0.0,
-                       max: maxVal,
-                       activeColor: Theme.of(context).sliderTheme.activeTrackColor,
-                       inactiveColor: Theme.of(context).sliderTheme.inactiveTrackColor,
-                       thumbColor: Theme.of(context).sliderTheme.thumbColor,
-                       squiggleAmplitude: wavyEnabled && isPlaying ? amplitude : 0.0,
-                       squiggleWavelength: wavelength,
-                       squiggleSpeed: wavyEnabled && isPlaying ? speed : 0.0,
-                       onChanged: (value) {
-                         controller.seek(Duration(milliseconds: value.toInt()));
-                       },
+                     return SliderTheme(
+                       data: SliderTheme.of(context).copyWith(
+                         trackHeight: 3.0,
+                         thumbShape:
+                             const RectangularSliderThumbShape(width: 4.0, height: 14.0, radius: 2.0),
+                         overlayShape:
+                             const RoundSliderOverlayShape(overlayRadius: 14),
+                         activeTrackColor: Colors.white,
+                         inactiveTrackColor: Colors.white.withAlpha(35),
+                         thumbColor: Colors.white,
+                       ),
+                       child: SquigglySlider(
+                         key: ValueKey('${wavyEnabled}_${isPlaying}_${amplitude}_${wavelength}_${speed}'),
+                         value: currentVal,
+                         min: 0.0,
+                         max: maxVal,
+                         activeColor: Colors.white,
+                         inactiveColor: Colors.white.withAlpha(35),
+                         thumbColor: Colors.white,
+                         squiggleAmplitude: wavyEnabled && isPlaying ? amplitude : 0.0,
+                         squiggleWavelength: wavelength,
+                         squiggleSpeed: wavyEnabled && isPlaying ? speed : 0.0,
+                         onChanged: (value) {
+                           controller.seek(Duration(milliseconds: value.toInt()));
+                         },
+                       ),
                      );
                    }),
                  ),

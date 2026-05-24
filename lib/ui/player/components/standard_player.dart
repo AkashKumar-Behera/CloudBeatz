@@ -183,29 +183,7 @@ class StandardPlayer extends StatelessWidget {
                   onPressed: playerController.playerPanelController.close,
                 ),
 
-                /// Playing from [Album name]
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 8.0, left: 5, right: 5),
-                    child: Obx(
-                      () => Column(
-                        children: [
-                          Text(playerController.playinfrom.value.typeString,
-                              style: const TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.bold)),
-                          Obx(
-                            () => Text(
-                              "\"${playerController.playinfrom.value.nameString}\"",
-                              overflow: TextOverflow.ellipsis,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          )
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                const Spacer(),
 
                 /// More button for current song context
                 IconButton(

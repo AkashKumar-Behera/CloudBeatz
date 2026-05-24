@@ -70,13 +70,14 @@ class ThemeController extends GetxController {
         generator.darkVibrantColor ??
         generator.lightMutedColor ??
         generator.lightVibrantColor;
-    primaryColor.value = paletteColor!.color;
-    textColor.value = paletteColor.bodyTextColor;
-    // printINFO(paletteColor.color.computeLuminance().toString());0.11 ref
-    if (paletteColor.color.computeLuminance() > 0.10) {
-      primaryColor.value = paletteColor.color.withLightness(0.10);
-      textColor.value = Colors.white54;
-    }
+
+    final extractedColor = paletteColor!.color;
+    final hsl = HSLColor.fromColor(extractedColor);
+    final double targetSaturation = hsl.saturation.clamp(0.20, 0.40);
+    final double targetLightness = hsl.lightness.clamp(0.09, 0.14);
+    primaryColor.value = HSLColor.fromAHSL(1.0, hsl.hue, targetSaturation, targetLightness).toColor();
+    textColor.value = Colors.white70;
+
     final primarySwatch = _createMaterialColor(primaryColor.value!);
     themedata.value = _createThemeData(primarySwatch, ThemeType.dynamic,
         textColor: textColor.value,
