@@ -718,7 +718,7 @@ class _LyricsMenuButton extends StatelessWidget {
       context: pc.homeScaffoldkey.currentState!.context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _LyricsInlineEditor(
+      builder: (ctx) => LyricsInlineEditor(
         controller: textController,
         pc: pc,
       ),
@@ -734,7 +734,7 @@ class _LyricsMenuButton extends StatelessWidget {
       context: pc.homeScaffoldkey.currentState!.context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _LyricsInlineEditor(
+      builder: (ctx) => LyricsInlineEditor(
         controller: textController,
         pc: pc,
         title: "searchWithTimestamp".tr,
@@ -746,13 +746,13 @@ class _LyricsMenuButton extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // INLINE LYRICS EDITOR
 // ─────────────────────────────────────────────────────────────────────────────
-class _LyricsInlineEditor extends StatelessWidget {
+class LyricsInlineEditor extends StatelessWidget {
   final TextEditingController controller;
   final PlayerController pc;
   final String? title;
 
-  const _LyricsInlineEditor(
-      {required this.controller, required this.pc, this.title});
+  const LyricsInlineEditor(
+      {super.key, required this.controller, required this.pc, this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -824,8 +824,9 @@ class _LyricsInlineEditor extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: TextField(
                 controller: controller,
-                maxLines: null,
-                expands: true,
+                maxLines: 15,
+                minLines: 8,
+                keyboardType: TextInputType.multiline,
                 autofocus: true,
                 style: const TextStyle(fontSize: 14, height: 1.6),
                 decoration: InputDecoration(

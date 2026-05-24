@@ -838,6 +838,68 @@ class PlayerController extends GetxController
     await showLyrics();
   }
 
+  String _preprocessLrc(String text) {
+    final lines = text.split('\n');
+    final List<MapEntry<Duration, String>> parsedLines = [];
+    final List<String> metadataAndOther = [];
+
+    // Matches one or more timestamps at start: e.g. [00:25.94] or [00:25.940] or [01:25]
+    final timestampRegExp = RegExp(r'^((?:\[\d+:\d+(?:\.\d+)?\])+)(.*)$');
+    // Extracts individual timestamps: [00:25.940]
+    final singleTimestampRegExp = RegExp(r'\[(\d+):(\d+(?:\.\d+)?)\]');
+
+    for (var line in lines) {
+      final trimmed = line.trim();
+      if (trimmed.isEmpty) continue;
+
+      final match = timestampRegExp.firstMatch(trimmed);
+      if (match != null) {
+        final timestampsGroup = match.group(1)!;
+        final lyricsText = match.group(2) ?? '';
+
+        // Find all individual timestamps in this group
+        final matches = singleTimestampRegExp.allMatches(timestampsGroup);
+        if (matches.isEmpty) {
+          metadataAndOther.add(trimmed);
+          continue;
+        }
+        for (final m in matches) {
+          final minutes = int.tryParse(m.group(1) ?? '0') ?? 0;
+          final secondsDouble = double.tryParse(m.group(2) ?? '0.0') ?? 0.0;
+          final seconds = secondsDouble.toInt();
+          final milliseconds = ((secondsDouble - seconds) * 1000).round();
+          
+          final duration = Duration(
+            minutes: minutes,
+            seconds: seconds,
+            milliseconds: milliseconds,
+          );
+
+          // Standardize format to [mm:ss.xxx]
+          final secondsStr = secondsDouble.toStringAsFixed(3).padLeft(6, '0');
+          final formattedTimestamp = '[${minutes.toString().padLeft(2, '0')}:$secondsStr]';
+
+          parsedLines.add(MapEntry(duration, '$formattedTimestamp $lyricsText'));
+        }
+      } else {
+        // It's a metadata line like [ar: The Weeknd] or plain text
+        metadataAndOther.add(trimmed);
+      }
+    }
+
+    // Sort parsed lines chronologically
+    parsedLines.sort((a, b) => a.key.compareTo(b.key));
+
+    // Build the clean LRC
+    final List<String> output = [];
+    output.addAll(metadataAndOther);
+    for (final entry in parsedLines) {
+      output.add(entry.value);
+    }
+
+    return output.join('\n');
+  }
+
   /// Updates manually pasted lyrics and saves them to local Hive database
   Future<void> updateSongLyrics(String newText) async {
     final song = currentSong.value;
@@ -847,13 +909,14 @@ class PlayerController extends GetxController
     Map<String, dynamic> lyricsData;
 
     if (hasTimestamps) {
-      final cleanText = newText
+      final processedText = _preprocessLrc(newText);
+      final cleanText = processedText
           .split('\n')
           .map((line) =>
               line.replaceAll(RegExp(r'\[\d+:\d+(?:\.\d+)?\]'), '').trim())
           .join('\n');
       lyricsData = {
-        'synced': newText,
+        'synced': processedText,
         'plainLyrics': cleanText.isEmpty ? 'NA' : cleanText,
       };
       lyrics.value = lyricsData;
