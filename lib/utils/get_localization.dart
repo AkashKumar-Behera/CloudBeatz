@@ -6607,7 +6607,7 @@ Map<String, Map<String, String>> get keys => {
     "videos": "Teledyski",
     "viewAll": "Pokaż wszystko",
     "results": "Wyniki",
-    "about": "O Harmony Music",
+    "about": "O CloudBeatz",
     "songRemovedfromQueue": "Usunięto z kolejki!",
     "radioNotAvailable": "Radio niedostępne dla tego wykonawcy!",
     "songRemovedfromQueueCurrSong": "Nie można usunąć aktualnie odtwarzanego utworu",
