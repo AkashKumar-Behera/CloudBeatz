@@ -72,7 +72,7 @@ class _PlainLyricsView extends StatelessWidget {
 class _SyncedLyricsView extends StatefulWidget {
   final PlayerController playerController;
 
-  const _SyncedLyricsView({super.key, required this.playerController});
+  const _SyncedLyricsView({required this.playerController});
 
   @override
   State<_SyncedLyricsView> createState() => _SyncedLyricsViewState();
@@ -81,6 +81,9 @@ class _SyncedLyricsView extends StatefulWidget {
 class _SyncedLyricsViewState extends State<_SyncedLyricsView> {
   final ScrollController _scrollController = ScrollController();
   int _lastIdx = -1;
+  double _lastViewportHeight = 0.0;
+  String _lastRawSynced = '';
+  final Map<int, GlobalKey> _itemKeys = {};
 
   @override
   void dispose() {
@@ -145,90 +148,119 @@ class _SyncedLyricsViewState extends State<_SyncedLyricsView> {
 
         final currentIdx = _getCurrentLineIndex(lines, posMs);
 
-        // Auto-scroll to current line
-        const double estimateLineHeight = 70.0;
-        if (currentIdx != _lastIdx) {
+        // Check if we need to scroll/center the active line
+        final bool lyricsChanged = rawSynced != _lastRawSynced;
+        final bool indexChanged = currentIdx != _lastIdx;
+        final bool heightChanged = (viewportHeight - _lastViewportHeight).abs() > 1.0;
+
+        if (lyricsChanged) {
+          _itemKeys.clear();
+        }
+
+        if (lyricsChanged || indexChanged || heightChanged) {
           _lastIdx = currentIdx;
+          _lastRawSynced = rawSynced;
+          _lastViewportHeight = viewportHeight;
+
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_scrollController.hasClients) {
-              final double target = currentIdx * estimateLineHeight;
-              _scrollController.animateTo(
-                target.clamp(0.0, _scrollController.position.maxScrollExtent),
-                duration: const Duration(milliseconds: 600),
-                curve: Curves.easeInOutCubic,
-              );
+              final context = _itemKeys[currentIdx]?.currentContext;
+              if (context != null) {
+                Scrollable.ensureVisible(
+                  context,
+                  alignment: 0.5,
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeInOutCubic,
+                );
+              } else {
+                // Fallback estimate scroll if context not resolved
+                const double estimateLineHeight = 70.0;
+                final double target = currentIdx * estimateLineHeight;
+                _scrollController.animateTo(
+                  target.clamp(0.0, _scrollController.position.maxScrollExtent),
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeInOutCubic,
+                );
+              }
             }
           });
         }
 
-        return ListView.builder(
+        const double estimateLineHeight = 70.0;
+
+        return SingleChildScrollView(
           controller: _scrollController,
           physics: const BouncingScrollPhysics(),
           padding: EdgeInsets.symmetric(
             vertical: (viewportHeight / 2 - 35).clamp(0.0, viewportHeight),
           ),
-          itemCount: lines.length,
-          itemBuilder: (context, index) {
-            final line = lines[index];
-            final isCurrent = index == currentIdx;
-            final difference = (index - currentIdx).abs();
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: List.generate(lines.length, (index) {
+              final line = lines[index];
+              final isCurrent = index == currentIdx;
+              final difference = (index - currentIdx).abs();
 
-            final double fontSize;
-            final double opacity;
-            final FontWeight fontWeight;
+              final double fontSize;
+              final double opacity;
+              final FontWeight fontWeight;
 
-            if (isCurrent) {
-              fontSize = 28;
-              opacity = 1.0;
-              fontWeight = FontWeight.w800;
-            } else if (difference == 1) {
-              fontSize = 20;
-              opacity = 0.50;
-              fontWeight = FontWeight.w600;
-            } else {
-              fontSize = 18;
-              opacity = 0.28;
-              fontWeight = FontWeight.w500;
-            }
+              if (isCurrent) {
+                fontSize = 28;
+                opacity = 1.0;
+                fontWeight = FontWeight.w800;
+              } else if (difference == 1) {
+                fontSize = 20;
+                opacity = 0.50;
+                fontWeight = FontWeight.w600;
+              } else {
+                fontSize = 18;
+                opacity = 0.28;
+                fontWeight = FontWeight.w500;
+              }
 
-            final text = line.mainText ?? '';
-            if (text.isEmpty) return const SizedBox.shrink();
+              final text = line.mainText ?? '';
+              if (text.isEmpty) return const SizedBox.shrink();
 
-            return GestureDetector(
-              onTap: () {
-                if (line.startTime != null) {
-                  widget.playerController.seek(Duration(milliseconds: line.startTime!));
-                }
-              },
-              behavior: HitTestBehavior.translucent,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                opacity: opacity,
-                child: AnimatedDefaultTextStyle(
+              final key = _itemKeys.putIfAbsent(index, () => GlobalKey());
+
+              return GestureDetector(
+                key: key,
+                onTap: () {
+                  if (line.startTime != null) {
+                    widget.playerController.seek(Duration(milliseconds: line.startTime!));
+                  }
+                },
+                behavior: HitTestBehavior.translucent,
+                child: AnimatedOpacity(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
-                  style: TextStyle(
-                    fontSize: fontSize,
-                    fontWeight: fontWeight,
-                    color: Colors.white,
-                    height: isCurrent ? 1.3 : 1.5,
-                    letterSpacing: isCurrent ? -0.3 : 0.0,
-                  ),
-                  child: Container(
-                    constraints: const BoxConstraints(minHeight: estimateLineHeight),
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      text,
-                      textAlign: TextAlign.left,
-                      maxLines: null,
+                  opacity: opacity,
+                  child: AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    style: TextStyle(
+                      fontSize: fontSize,
+                      fontWeight: fontWeight,
+                      color: Colors.white,
+                      height: isCurrent ? 1.3 : 1.5,
+                      letterSpacing: isCurrent ? -0.3 : 0.0,
+                    ),
+                    child: Container(
+                      constraints: const BoxConstraints(minHeight: estimateLineHeight),
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        text,
+                        textAlign: TextAlign.left,
+                        maxLines: null,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            }),
+          ),
         );
       });
     });
