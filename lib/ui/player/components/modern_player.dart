@@ -653,6 +653,14 @@ class _LyricsMenuButton extends StatelessWidget {
             ]),
           ),
           PopupMenuItem(
+            value: 'search_timestamp',
+            child: Row(children: [
+              const Icon(Icons.manage_search_rounded, size: 18),
+              const SizedBox(width: 8),
+              Text("searchLyricsWithTimestamp".tr),
+            ]),
+          ),
+          PopupMenuItem(
             value: 'fetch',
             child: Row(children: [
               const Icon(Icons.refresh_rounded, size: 18),
@@ -675,6 +683,11 @@ class _LyricsMenuButton extends StatelessWidget {
             case 'search':
               final query =
                   '${pc.currentSong.value?.title ?? ''} ${pc.currentSong.value?.artist ?? ''} lyrics';
+              await _launchLyricsSearch(query);
+              break;
+            case 'search_timestamp':
+              final query =
+                  '${pc.currentSong.value?.title ?? ''} ${pc.currentSong.value?.artist ?? ''} lrc lyrics';
               await _launchLyricsSearch(query);
               break;
             case 'edit':
