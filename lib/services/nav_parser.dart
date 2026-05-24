@@ -739,6 +739,18 @@ dynamic parseSearchResult(Map<String, dynamic> data,
   resultType = ((resultType == null)
       ? getSearchResultType(getItemText(data, 1), searchResultTypes)
       : resultType)!;
+
+  // Safety guard: if getSearchResultType() misclassified a playlist item as
+  // 'album' (e.g. creator name in subtitle didn't match any known type),
+  // correct it by inspecting the browse ID prefix.
+  if (resultType == 'album') {
+    final String? browseId = nav(data, navigation_browse_id);
+    if (browseId != null &&
+        (browseId.startsWith('VL') || browseId.startsWith('PL'))) {
+      resultType = 'playlist';
+    }
+  }
+
   searchResult['resultType'] = resultType;
 
   if (resultType != 'artist') {

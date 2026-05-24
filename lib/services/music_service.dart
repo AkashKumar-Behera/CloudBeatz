@@ -685,8 +685,15 @@ class MusicServices extends getx.GetxService {
           displayCategory = firstLetter + rest;
         }
 
+        // When filter is null (unfiltered search), derive type from shelf category
+        // so playlist shelves (Community/Featured playlists) are not misidentified.
+        String? shelfType = type;
+        if (filter == null && category.toLowerCase().contains('playlists')) {
+          shelfType = 'playlist';
+        }
+
         final mixedItems = parseSearchResults(itemResults,
-            ['artist', 'playlist', 'song', 'video', 'station'], type, category);
+            ['artist', 'playlist', 'song', 'video', 'station'], shelfType, category);
         if (filter == null) {
           for (var item in mixedItems) {
             final itemType = item.runtimeType == MediaItem
