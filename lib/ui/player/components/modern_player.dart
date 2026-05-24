@@ -1038,7 +1038,9 @@ class _SquigglyProgressBarState extends State<_SquigglyProgressBar> {
                 activeColor: Colors.white,
                 inactiveColor: Colors.white.withAlpha(35),
                 thumbColor: Colors.white,
-                squiggleAmplitude: (wavyEnabled && playing && _dragValue == null) ? amplitude : 0.0,
+                squiggleAmplitude: (wavyEnabled && playing && _dragValue == null)
+                    ? amplitude * (displayVal / (maxVal * 0.05).clamp(1000.0, 5000.0)).clamp(0.0, 1.0)
+                    : 0.0,
                 squiggleWavelength: wavelength,
                 squiggleSpeed: (wavyEnabled && playing && _dragValue == null) ? speed : 0.0,
                 onChanged: (v) {

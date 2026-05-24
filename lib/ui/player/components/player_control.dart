@@ -115,47 +115,55 @@ class _PlayerControlWidgetState extends State<PlayerControlWidget> {
                  Padding(
                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
                    child: Obx(() {
-                     final sc = Get.find<SettingsScreenController>();
-                     final wavyEnabled = sc.squigglySliderEnabled.value;
-                     final amplitude = sc.squigglyAmplitude.value;
-                     final wavelength = sc.squigglyWavelength.value;
-                     final speed = sc.squigglySpeed.value;
-                     return SliderTheme(
-                       data: SliderTheme.of(context).copyWith(
-                         trackHeight: 3.0,
-                         thumbShape:
-                             const RectangularSliderThumbShape(width: 4.0, height: 14.0, radius: 2.0),
-                         overlayShape:
-                             const RoundSliderOverlayShape(overlayRadius: 14),
-                         activeTrackColor: Colors.white,
-                         inactiveTrackColor: Colors.white.withAlpha(35),
-                         thumbColor: Colors.white,
-                       ),
-                       child: SquigglySlider(
-                         key: ValueKey('${wavyEnabled}_${isPlaying}_${amplitude}_${wavelength}_${speed}'),
-                         value: displayVal,
-                         min: 0.0,
-                         max: maxVal,
-                         activeColor: Colors.white,
-                         inactiveColor: Colors.white.withAlpha(35),
-                         thumbColor: Colors.white,
-                         squiggleAmplitude: (wavyEnabled && isPlaying && _dragValue == null) ? amplitude : 0.0,
-                         squiggleWavelength: wavelength,
-                         squiggleSpeed: (wavyEnabled && isPlaying && _dragValue == null) ? speed : 0.0,
-                         onChanged: (value) {
-                           setState(() {
-                             _dragValue = value;
-                           });
-                         },
-                         onChangeEnd: (value) {
-                           controller.seek(Duration(milliseconds: value.toInt()));
-                           setState(() {
-                             _dragValue = null;
-                           });
-                         },
-                       ),
-                     );
-                   }),
+                      final sc = Get.find<SettingsScreenController>();
+                      final wavyEnabled = sc.squigglySliderEnabled.value;
+                      final amplitude = sc.squigglyAmplitude.value;
+                      final wavelength = sc.squigglyWavelength.value;
+                      final speed = sc.squigglySpeed.value;
+
+                      final scaleDuration = (maxVal * 0.05).clamp(1000.0, 5000.0);
+                      final startScale = (displayVal / scaleDuration).clamp(0.0, 1.0);
+                      final currentAmplitude = (wavyEnabled && isPlaying && _dragValue == null)
+                          ? amplitude * startScale
+                          : 0.0;
+                      final currentSpeed = (wavyEnabled && isPlaying && _dragValue == null) ? speed : 0.0;
+
+                      return SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          trackHeight: 3.0,
+                          thumbShape:
+                              const RectangularSliderThumbShape(width: 4.0, height: 14.0, radius: 2.0),
+                          overlayShape:
+                              const RoundSliderOverlayShape(overlayRadius: 14),
+                          activeTrackColor: Colors.white,
+                          inactiveTrackColor: Colors.white.withAlpha(35),
+                          thumbColor: Colors.white,
+                        ),
+                        child: SquigglySlider(
+                          key: ValueKey('${wavyEnabled}_${isPlaying}_${amplitude}_${wavelength}_${speed}'),
+                          value: displayVal,
+                          min: 0.0,
+                          max: maxVal,
+                          activeColor: Colors.white,
+                          inactiveColor: Colors.white.withAlpha(35),
+                          thumbColor: Colors.white,
+                          squiggleAmplitude: currentAmplitude,
+                          squiggleWavelength: wavelength,
+                          squiggleSpeed: currentSpeed,
+                          onChanged: (value) {
+                            setState(() {
+                              _dragValue = value;
+                            });
+                          },
+                          onChangeEnd: (value) {
+                            controller.seek(Duration(milliseconds: value.toInt()));
+                            setState(() {
+                              _dragValue = null;
+                            });
+                          },
+                        ),
+                      );
+                    }),
                  ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 22.0),

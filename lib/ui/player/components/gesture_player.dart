@@ -259,9 +259,11 @@ class GesturePlayer extends StatelessWidget {
                                     activeColor: Theme.of(context).sliderTheme.activeTrackColor,
                                     inactiveColor: Theme.of(context).sliderTheme.inactiveTrackColor,
                                     thumbColor: Theme.of(context).sliderTheme.thumbColor,
-                                    squiggleAmplitude: wavyEnabled && isPlaying ? amplitude : 0.0,
+                                    squiggleAmplitude: (wavyEnabled && isPlaying)
+                                        ? amplitude * (currentVal / (maxVal * 0.05).clamp(1000.0, 5000.0)).clamp(0.0, 1.0)
+                                        : 0.0,
                                     squiggleWavelength: wavelength,
-                                    squiggleSpeed: wavyEnabled && isPlaying ? speed : 0.0,
+                                    squiggleSpeed: (wavyEnabled && isPlaying) ? speed : 0.0,
                                     onChanged: (value) {
                                       controller.seek(Duration(milliseconds: value.toInt()));
                                     },

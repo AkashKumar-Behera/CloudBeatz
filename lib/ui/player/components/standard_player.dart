@@ -2,9 +2,12 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:squiggly_slider/slider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../screens/Settings/settings_screen_controller.dart';
 import '../../widgets/image_widget.dart';
+import '../../widgets/rectangular_slider_thumb_shape.dart';
 import '../../widgets/songinfo_bottom_sheet.dart';
 import '../player_controller.dart';
 import 'albumart_lyrics.dart';
@@ -523,13 +526,28 @@ class _StdProgressBarState extends State<_StdProgressBar> {
 
   @override
   Widget build(BuildContext context) {
+    final sc = Get.find<SettingsScreenController>();
     return GetX<PlayerController>(builder: (controller) {
+      final isPlaying = controller.buttonState.value == PlayButtonState.playing;
       final maxMs =
           controller.progressBarStatus.value.total.inMilliseconds.toDouble();
       final currentMs =
           controller.progressBarStatus.value.current.inMilliseconds.toDouble();
       final maxVal = maxMs > 0 ? maxMs : 1.0;
       final displayVal = (_dragValue ?? currentMs).clamp(0.0, maxVal);
+
+      final wavyEnabled = sc.squigglySliderEnabled.value;
+      final amplitude = sc.squigglyAmplitude.value;
+      final wavelength = sc.squigglyWavelength.value;
+      final speed = sc.squigglySpeed.value;
+
+      // Scale down amplitude at the start of the song for a smooth transition from a straight line
+      final scaleDuration = (maxVal * 0.05).clamp(1000.0, 5000.0);
+      final startScale = (displayVal / scaleDuration).clamp(0.0, 1.0);
+      final currentAmplitude = (wavyEnabled && isPlaying && _dragValue == null)
+          ? amplitude * startScale
+          : 0.0;
+      final currentSpeed = (wavyEnabled && isPlaying && _dragValue == null) ? speed : 0.0;
 
       return Column(
         children: [
@@ -539,20 +557,24 @@ class _StdProgressBarState extends State<_StdProgressBar> {
               data: SliderTheme.of(context).copyWith(
                 trackHeight: 3.0,
                 thumbShape:
-                    const RoundSliderThumbShape(enabledThumbRadius: 6),
+                    const RectangularSliderThumbShape(width: 4.0, height: 14.0, radius: 2.0),
                 overlayShape:
                     const RoundSliderOverlayShape(overlayRadius: 14),
                 activeTrackColor: Colors.white,
                 inactiveTrackColor: Colors.white.withAlpha(35),
                 thumbColor: Colors.white,
               ),
-              child: Slider(
+              child: SquigglySlider(
+                key: ValueKey('${wavyEnabled}_${isPlaying}_${amplitude}_${wavelength}_${speed}'),
                 value: displayVal,
                 min: 0.0,
                 max: maxVal,
                 activeColor: Colors.white,
                 inactiveColor: Colors.white.withAlpha(35),
                 thumbColor: Colors.white,
+                squiggleAmplitude: currentAmplitude,
+                squiggleWavelength: wavelength,
+                squiggleSpeed: currentSpeed,
                 onChanged: (v) => setState(() => _dragValue = v),
                 onChangeEnd: (v) {
                   controller.seek(Duration(milliseconds: v.toInt()));
