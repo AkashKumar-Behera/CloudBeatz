@@ -540,10 +540,27 @@ class _ActiveGlowTextState extends State<_ActiveGlowText>
       letterSpacing: widget.letterSpacing,
       height: widget.height,
       color: Colors.white,
+      shadows: [
+        Shadow(
+          blurRadius: 12.0,
+          color: Colors.white.withOpacity(0.42),
+          offset: Offset.zero,
+        ),
+        Shadow(
+          blurRadius: 3.0,
+          color: Colors.white.withOpacity(0.25),
+          offset: Offset.zero,
+        ),
+      ],
     );
 
-    final TextStyle dimmedStyle = textStyle.copyWith(
+    final TextStyle dimmedStyle = TextStyle(
+      fontSize: widget.fontSize,
+      fontWeight: widget.fontWeight,
+      letterSpacing: widget.letterSpacing,
+      height: widget.height,
       color: Colors.white.withOpacity(0.26),
+      shadows: const [],
     );
 
     return AnimatedBuilder(
