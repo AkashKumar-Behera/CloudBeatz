@@ -71,7 +71,7 @@ class _PlainLyricsView extends StatelessWidget {
                 const SizedBox(height: 35),
                 Center(
                   child: Text(
-                    "Lyrics synchronized by Akash ✨",
+                    "— Lyrics edited by Akash",
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.white.withOpacity(0.35),

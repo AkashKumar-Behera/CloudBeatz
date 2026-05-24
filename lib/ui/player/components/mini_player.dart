@@ -14,6 +14,7 @@ import '../../widgets/song_download_btn.dart';
 import '../../widgets/image_widget.dart';
 import '../../widgets/mini_player_progress_bar.dart';
 import 'animated_play_button.dart';
+import '../../../services/jam_service.dart';
 
 class MiniPlayer extends StatelessWidget {
   const MiniPlayer({super.key});
@@ -161,15 +162,45 @@ class MiniPlayer extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
-                            playerController.currentSong.value != null
-                                ? ImageWidget(
-                                    size: 50,
-                                    song: playerController.currentSong.value!,
-                                  )
-                                : const SizedBox(
-                                    height: 50,
-                                    width: 50,
-                                  ),
+                            Stack(
+                              children: [
+                                playerController.currentSong.value != null
+                                    ? ImageWidget(
+                                        size: 50,
+                                        song: playerController.currentSong.value!,
+                                      )
+                                    : const SizedBox(
+                                        height: 50,
+                                        width: 50,
+                                      ),
+                                Obx(() {
+                                  final jamService = Get.find<JamService>();
+                                  if (jamService.isInJam.isTrue) {
+                                    return Positioned(
+                                      top: 1,
+                                      right: 1,
+                                      child: Container(
+                                        width: 9,
+                                        height: 9,
+                                        decoration: BoxDecoration(
+                                          color: Colors.greenAccent,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: Colors.black, width: 1.5),
+                                          boxShadow: const [
+                                            BoxShadow(
+                                              color: Colors.greenAccent,
+                                              blurRadius: 4,
+                                              spreadRadius: 1,
+                                            )
+                                          ]
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  return const SizedBox.shrink();
+                                }),
+                              ],
+                            ),
                           ],
                         ),
                         const SizedBox(

@@ -1,10 +1,14 @@
 import 'package:audio_service/audio_service.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:terminate_restart/terminate_restart.dart';
+
+import 'services/firebase_config.dart';
+import 'services/jam_service.dart';
 
 import '/ui/screens/Search/search_screen_controller.dart';
 import '/utils/get_localization.dart';
@@ -24,6 +28,9 @@ import 'utils/update_check_flag_file.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: FirebaseConfig.currentPlatform,
+  );
   await initHive();
   _setAppInitPrefs();
   startApplicationServices();
@@ -93,6 +100,7 @@ Future<void> startApplicationServices() async {
   Get.lazyPut(() => LibraryArtistsController(), fenix: true);
   Get.lazyPut(() => SettingsScreenController(), fenix: true);
   Get.lazyPut(() => Downloader(), fenix: true);
+  Get.put(JamService(), permanent: true);
   if (GetPlatform.isDesktop) {
     Get.lazyPut(() => SearchScreenController(), fenix: true);
     Get.put(DesktopSystemTray());

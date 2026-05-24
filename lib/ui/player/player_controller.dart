@@ -21,6 +21,8 @@ import '../screens/Home/home_screen_controller.dart';
 import '../widgets/sliding_up_panel.dart';
 import '/models/durationstate.dart';
 import '/services/music_service.dart';
+import '../../services/jam_service.dart';
+
 
 class PlayerController extends GetxController
     with GetSingleTickerProviderStateMixin {
@@ -201,8 +203,16 @@ class PlayerController extends GetxController
       // Keep the screen awake whenever playback is active and the setting is enabled.
       final shouldEnable = settings.keepScreenAwake.isTrue && isPlaying;
       _setWakelock(shouldEnable);
+
+      if (Get.isRegistered<JamService>()) {
+        final jamService = Get.find<JamService>();
+        if (jamService.isInJam.isTrue && jamService.isHost.isTrue) {
+          jamService.pushSongUpdateFromLocalPlayer();
+        }
+      }
     });
   }
+
 
   void _setWakelock(bool enable) {
     if (_wakelockActive == enable) return; // no-op if already in desired state
@@ -294,9 +304,17 @@ class PlayerController extends GetxController
         if (Get.find<SettingsScreenController>().playerUi.value == 1) {
           gesturePlayerVisibleState.value = 2;
         }
+
+        if (Get.isRegistered<JamService>()) {
+          final jamService = Get.find<JamService>();
+          if (jamService.isInJam.isTrue && jamService.isHost.isTrue) {
+            jamService.pushSongUpdateFromLocalPlayer();
+          }
+        }
       }
     });
   }
+
 
   void _listenForPlaylistChange() {
     _audioHandler.queue.listen((queue) {
@@ -608,7 +626,22 @@ class PlayerController extends GetxController
 
   void seek(Duration position) {
     _audioHandler.seek(position);
+    if (Get.isRegistered<JamService>()) {
+      final jamService = Get.find<JamService>();
+      if (jamService.isInJam.isTrue && jamService.isHost.isTrue) {
+        jamService.pushSongUpdate(
+          videoId: currentSong.value?.id ?? '',
+          title: currentSong.value?.title ?? '',
+          artist: currentSong.value?.artist ?? '',
+          thumbnail: currentSong.value?.artUri?.toString() ?? '',
+          durationMs: currentSong.value?.duration?.inMilliseconds ?? 0,
+          positionMs: position.inMilliseconds,
+          isPlaying: buttonState.value == PlayButtonState.playing,
+        );
+      }
+    }
   }
+
 
   void seekByIndex(int index) {
     _audioHandler.customAction("playByIndex", {"index": index});

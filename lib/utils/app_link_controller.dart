@@ -12,6 +12,8 @@ import '/services/music_service.dart';
 import '/ui/player/player_controller.dart';
 import '../ui/navigator.dart';
 import '../ui/widgets/snackbar.dart';
+import '../services/jam_service.dart';
+
 
 class AppLinksController extends GetxController with ProcessLink {
   late AppLinks _appLinks;
@@ -56,11 +58,21 @@ mixin ProcessLink {
       Navigator.of(Get.context!).pop();
     }
 
+    if (uri.scheme == "cloudbeatz" && uri.host == "jam") {
+      final code = uri.pathSegments.isNotEmpty ? uri.pathSegments[0] : null;
+      if (code != null && code.length == 4) {
+        final jamService = Get.find<JamService>();
+        await jamService.joinJamFromDeepLink(code);
+        return;
+      }
+    }
+
     if (uri.host == "youtube.com" ||
         uri.host == "music.youtube.com" ||
         uri.host == "youtu.be" ||
         uri.host == "www.youtube.com" ||
         uri.host == "m.youtube.com") {
+
       printINFO(
           "pathsegmet: ${uri.pathSegments} params:${uri.queryParameters}");
       if (uri.pathSegments[0] == "playlist" &&
