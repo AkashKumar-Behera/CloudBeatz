@@ -3,6 +3,9 @@ import 'package:flutter_lyric/lyrics_model_builder.dart';
 import 'package:flutter_lyric/lyrics_reader.dart';
 import 'package:flutter_lyric/lyrics_reader_model.dart';
 import 'package:get/get.dart';
+import 'dart:async';
+import 'dart:math';
+import 'package:audio_service/audio_service.dart';
 
 import '../../widgets/loader.dart';
 import '../player_controller.dart';
@@ -93,10 +96,43 @@ class _SyncedLyricsViewState extends State<_SyncedLyricsView> {
 
   List<LyricsLineModel> _parseLines(String rawLyrics) {
     if (rawLyrics.isEmpty) return [];
-    return LyricsModelBuilder.create()
+    final originalLines = LyricsModelBuilder.create()
         .bindLyricToMain(rawLyrics)
         .getModel()
         .lyrics;
+
+    if (originalLines.isEmpty) return [];
+
+    final List<LyricsLineModel> processedLines = [];
+
+    // Check if there is an intro break before the first lyric line starts
+    final firstStart = originalLines.first.startTime ?? 0;
+    if (firstStart > 4000) {
+      processedLines.add(LyricsLineModel()
+        ..startTime = 0
+        ..endTime = firstStart
+        ..mainText = "• • •");
+    }
+
+    for (int i = 0; i < originalLines.length; i++) {
+      processedLines.add(originalLines[i]);
+
+      if (i < originalLines.length - 1) {
+        final currentEnd =
+            originalLines[i].endTime ?? originalLines[i].startTime ?? 0;
+        final nextStart = originalLines[i + 1].startTime ?? 0;
+        final gap = nextStart - currentEnd;
+
+        if (gap > 4500) {
+          processedLines.add(LyricsLineModel()
+            ..startTime = currentEnd
+            ..endTime = nextStart
+            ..mainText = "• • •");
+        }
+      }
+    }
+
+    return processedLines;
   }
 
   int _getCurrentLineIndex(List<LyricsLineModel> lines, int posMs) {
@@ -224,15 +260,34 @@ class _SyncedLyricsViewState extends State<_SyncedLyricsView> {
 
               final key = _itemKeys.putIfAbsent(index, () => GlobalKey());
 
-              return GestureDetector(
-                key: key,
-                onTap: () {
-                  if (line.startTime != null) {
-                    widget.playerController.seek(Duration(milliseconds: line.startTime!));
-                  }
-                },
-                behavior: HitTestBehavior.translucent,
-                child: AnimatedOpacity(
+              final bool isInstrumental = text == "• • •";
+
+              Widget contentWidget;
+              if (isInstrumental) {
+                contentWidget = Container(
+                  constraints: const BoxConstraints(minHeight: estimateLineHeight),
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: _PulsingDots(isActive: isCurrent),
+                );
+              } else if (isCurrent) {
+                contentWidget = Container(
+                  constraints: const BoxConstraints(minHeight: estimateLineHeight),
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: _ActiveGlowText(
+                    text: text,
+                    startTime: line.startTime ?? 0,
+                    endTime: line.endTime ?? 0,
+                    playerController: widget.playerController,
+                    fontSize: fontSize,
+                    fontWeight: fontWeight,
+                    letterSpacing: -0.3,
+                    height: 1.3,
+                  ),
+                );
+              } else {
+                contentWidget = AnimatedOpacity(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
                   opacity: opacity,
@@ -243,8 +298,8 @@ class _SyncedLyricsViewState extends State<_SyncedLyricsView> {
                       fontSize: fontSize,
                       fontWeight: fontWeight,
                       color: Colors.white,
-                      height: isCurrent ? 1.3 : 1.5,
-                      letterSpacing: isCurrent ? -0.3 : 0.0,
+                      height: 1.5,
+                      letterSpacing: 0.0,
                     ),
                     child: Container(
                       constraints: const BoxConstraints(minHeight: estimateLineHeight),
@@ -257,12 +312,244 @@ class _SyncedLyricsViewState extends State<_SyncedLyricsView> {
                       ),
                     ),
                   ),
-                ),
+                );
+              }
+
+              return GestureDetector(
+                key: key,
+                onTap: () {
+                  if (line.startTime != null) {
+                    widget.playerController.seek(Duration(milliseconds: line.startTime!));
+                  }
+                },
+                behavior: HitTestBehavior.translucent,
+                child: contentWidget,
               );
             }),
           ),
         );
       });
     });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PULSING DOTS (Apple-style interlude indicator)
+// ─────────────────────────────────────────────────────────────────────────────
+class _PulsingDots extends StatefulWidget {
+  final bool isActive;
+  const _PulsingDots({required this.isActive});
+
+  @override
+  State<_PulsingDots> createState() => _PulsingDotsState();
+}
+
+class _PulsingDotsState extends State<_PulsingDots>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    if (widget.isActive) {
+      _controller.repeat();
+    }
+  }
+
+  @override
+  void didUpdateWidget(_PulsingDots oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive) {
+      if (!_controller.isAnimating) {
+        _controller.repeat();
+      }
+    } else {
+      _controller.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final opacity = widget.isActive ? 1.0 : 0.28;
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 300),
+      opacity: opacity,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(3, (index) {
+          return AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              double scale = 1.0;
+              double dotOpacity = 0.3;
+
+              if (widget.isActive) {
+                final progress = _controller.value;
+                final phase = (progress - (index * 0.22)) % 1.0;
+                if (phase < 0.5) {
+                  final sinVal = sin(phase * pi * 2);
+                  scale = 1.0 + (sinVal * 0.28);
+                  dotOpacity = 0.3 + (sinVal * 0.7);
+                }
+              }
+
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 6),
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(dotOpacity.clamp(0.0, 1.0)),
+                ),
+                transform: Matrix4.diagonal3Values(scale, scale, 1.0),
+                transformAlignment: Alignment.center,
+              );
+            },
+          );
+        }),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACTIVE GLOW TEXT (Apple-style left-to-right text sweep)
+// ─────────────────────────────────────────────────────────────────────────────
+class _ActiveGlowText extends StatefulWidget {
+  final String text;
+  final int startTime;
+  final int endTime;
+  final PlayerController playerController;
+  final double fontSize;
+  final FontWeight fontWeight;
+  final double letterSpacing;
+  final double height;
+
+  const _ActiveGlowText({
+    required this.text,
+    required this.startTime,
+    required this.endTime,
+    required this.playerController,
+    required this.fontSize,
+    required this.fontWeight,
+    required this.letterSpacing,
+    required this.height,
+  });
+
+  @override
+  State<_ActiveGlowText> createState() => _ActiveGlowTextState();
+}
+
+class _ActiveGlowTextState extends State<_ActiveGlowText>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
+  late StreamSubscription _positionSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    final durationMs = widget.endTime - widget.startTime;
+    _animController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: durationMs > 0 ? durationMs : 1000),
+    );
+
+    _syncAnimation();
+
+    _positionSubscription = AudioService.position.listen((_) {
+      _syncAnimation();
+    });
+  }
+
+  void _syncAnimation() {
+    if (!mounted) return;
+    final pc = widget.playerController;
+    final isPlaying = pc.buttonState.value == PlayButtonState.playing;
+    final currentMs = pc.progressBarStatus.value.current.inMilliseconds;
+
+    final elapsed = currentMs - widget.startTime;
+    final duration = widget.endTime - widget.startTime;
+
+    if (duration <= 0) return;
+
+    final double progress = (elapsed / duration).clamp(0.0, 1.0);
+
+    _animController.value = progress;
+
+    if (isPlaying && currentMs >= widget.startTime && currentMs < widget.endTime) {
+      final remainingMs = widget.endTime - currentMs;
+      _animController.animateTo(
+        1.0,
+        duration: Duration(milliseconds: remainingMs),
+        curve: Curves.linear,
+      );
+    } else {
+      _animController.stop();
+    }
+  }
+
+  @override
+  void didUpdateWidget(_ActiveGlowText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.startTime != widget.startTime || oldWidget.endTime != widget.endTime) {
+      final durationMs = widget.endTime - widget.startTime;
+      _animController.duration = Duration(milliseconds: durationMs > 0 ? durationMs : 1000);
+      _syncAnimation();
+    }
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    _positionSubscription.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animController,
+      builder: (context, child) {
+        final progress = _animController.value;
+        return ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback: (bounds) {
+            return LinearGradient(
+              colors: [
+                Colors.white,
+                Colors.white.withOpacity(0.26),
+              ],
+              stops: [
+                progress,
+                (progress + 0.15).clamp(0.0, 1.0),
+              ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ).createShader(bounds);
+          },
+          child: Text(
+            widget.text,
+            textAlign: TextAlign.left,
+            maxLines: null,
+            style: TextStyle(
+              fontSize: widget.fontSize,
+              fontWeight: widget.fontWeight,
+              letterSpacing: widget.letterSpacing,
+              height: widget.height,
+            ),
+          ),
+        );
+      },
+    );
   }
 }
