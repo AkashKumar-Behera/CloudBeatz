@@ -517,37 +517,84 @@ class _ActiveGlowTextState extends State<_ActiveGlowText>
 
   @override
   Widget build(BuildContext context) {
+    final words = widget.text.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    if (words.isEmpty) return const SizedBox.shrink();
+
+    final List<int> wordLengths = words.map((w) => w.length).toList();
+    final int totalChars = wordLengths.fold(0, (sum, len) => sum + len);
+
+    final List<double> wordStartFractions = [];
+    final List<double> wordEndFractions = [];
+
+    double currentFraction = 0.0;
+    for (int i = 0; i < words.length; i++) {
+      wordStartFractions.add(currentFraction);
+      final double weight = totalChars > 0 ? (wordLengths[i] / totalChars) : (1.0 / words.length);
+      currentFraction += weight;
+      wordEndFractions.add(currentFraction.clamp(0.0, 1.0));
+    }
+
+    final TextStyle textStyle = TextStyle(
+      fontSize: widget.fontSize,
+      fontWeight: widget.fontWeight,
+      letterSpacing: widget.letterSpacing,
+      height: widget.height,
+      color: Colors.white,
+    );
+
+    final TextStyle dimmedStyle = textStyle.copyWith(
+      color: Colors.white.withOpacity(0.26),
+    );
+
     return AnimatedBuilder(
       animation: _animController,
       builder: (context, child) {
         final progress = _animController.value;
-        return ShaderMask(
-          blendMode: BlendMode.srcIn,
-          shaderCallback: (bounds) {
-            return LinearGradient(
-              colors: [
-                Colors.white,
-                Colors.white.withOpacity(0.26),
-              ],
-              stops: [
-                progress,
-                (progress + 0.15).clamp(0.0, 1.0),
-              ],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ).createShader(bounds);
-          },
-          child: Text(
-            widget.text,
-            textAlign: TextAlign.left,
-            maxLines: null,
-            style: TextStyle(
-              fontSize: widget.fontSize,
-              fontWeight: widget.fontWeight,
-              letterSpacing: widget.letterSpacing,
-              height: widget.height,
-            ),
-          ),
+
+        return Wrap(
+          alignment: WrapAlignment.start,
+          crossAxisAlignment: WrapCrossAlignment.start,
+          spacing: widget.fontSize * 0.24,
+          runSpacing: widget.fontSize * 0.12,
+          children: List.generate(words.length, (index) {
+            final startFrac = wordStartFractions[index];
+            final endFrac = wordEndFractions[index];
+
+            if (progress >= endFrac) {
+              return Text(
+                words[index],
+                style: textStyle,
+              );
+            } else if (progress <= startFrac) {
+              return Text(
+                words[index],
+                style: dimmedStyle,
+              );
+            } else {
+              final double wordProgress = (progress - startFrac) / (endFrac - startFrac);
+              return ShaderMask(
+                blendMode: BlendMode.srcIn,
+                shaderCallback: (bounds) {
+                  return LinearGradient(
+                    colors: [
+                      Colors.white,
+                      Colors.white.withOpacity(0.26),
+                    ],
+                    stops: [
+                      wordProgress,
+                      (wordProgress + 0.15).clamp(0.0, 1.0),
+                    ],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ).createShader(bounds);
+                },
+                child: Text(
+                  words[index],
+                  style: textStyle,
+                ),
+              );
+            }
+          }),
         );
       },
     );
