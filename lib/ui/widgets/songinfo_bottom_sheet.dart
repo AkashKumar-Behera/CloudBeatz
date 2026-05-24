@@ -22,6 +22,8 @@ import '../navigator.dart';
 import 'song_download_btn.dart';
 import 'image_widget.dart';
 import 'song_info_dialog.dart';
+import '../../services/jam_service.dart';
+
 
 class SongInfoBottomSheet extends StatelessWidget {
   const SongInfoBottomSheet(this.song,
@@ -107,6 +109,17 @@ class SongInfoBottomSheet extends StatelessWidget {
                 playerController.startRadio(song);
               },
             ),
+            ListTile(
+              visualDensity: const VisualDensity(vertical: -1),
+              leading: const Icon(Icons.graphic_eq, color: Colors.greenAccent),
+              title: const Text("Collaborative Jam"),
+              onTap: () {
+                Navigator.of(context).pop();
+                final jamService = Get.find<JamService>();
+                jamService.showJamBottomSheet();
+              },
+            ),
+
             (calledFromPlayer || calledFromQueue)
                 ? const SizedBox.shrink()
                 : ListTile(
