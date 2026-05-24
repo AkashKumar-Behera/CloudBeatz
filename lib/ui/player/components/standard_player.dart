@@ -237,40 +237,47 @@ class _StandardLyricsLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final topPad = Get.mediaQuery.padding.top;
     final bottomPad = Get.mediaQuery.padding.bottom;
+    // Fixed bottom section: progress(~68) + gap(8) + controls(~56) + bottom padding
+    final bottomFixedH = 68.0 + 8.0 + 56.0 + (bottomPad > 0 ? bottomPad + 8 : 16);
+    // Fixed top section: status bar space + header row (~56)
+    final topFixedH = (topPad + 8) + 56.0;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Space below status bar only (fixed header is hidden in lyrics mode)
-        SizedBox(height: topPad + 8),
+    return LayoutBuilder(builder: (context, constraints) {
+      // Compute exact lyrics height so controls always stay on screen
+      final lyricsH =
+          (constraints.maxHeight - topFixedH - bottomFixedH - 20).clamp(80.0, double.infinity);
 
-        // Lyrics header: minimize ↓ + 48px thumb + title + ⋯ menu
-        _StdLyricsHeader(pc: playerController),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(height: topPad + 8),
 
-        // Full LyricsWidget
-        const Expanded(
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: LyricsWidget(padding: EdgeInsets.zero),
+          _StdLyricsHeader(pc: playerController),
+
+          // Constrained lyrics — never pushes controls off screen
+          SizedBox(
+            height: lyricsH,
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: LyricsWidget(padding: EdgeInsets.zero),
+            ),
           ),
-        ),
 
-        const SizedBox(height: 4),
+          const SizedBox(height: 4),
 
-        // Progress bar
-        const _StdProgressBar(),
+          const _StdProgressBar(),
 
-        const SizedBox(height: 8),
+          const SizedBox(height: 8),
 
-        // Controls row
-        Padding(
-          padding: EdgeInsets.only(
-            bottom: bottomPad > 0 ? bottomPad + 8 : 16,
+          Padding(
+            padding: EdgeInsets.only(
+              bottom: bottomPad > 0 ? bottomPad + 8 : 16,
+            ),
+            child: const _StdLyricsControls(),
           ),
-          child: const _StdLyricsControls(),
-        ),
-      ],
-    );
+        ],
+      );
+    });
   }
 }
 
