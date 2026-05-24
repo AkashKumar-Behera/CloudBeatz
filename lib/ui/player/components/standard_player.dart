@@ -240,8 +240,8 @@ class _StandardLyricsLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final topPad = Get.mediaQuery.padding.top;
     final bottomPad = Get.mediaQuery.padding.bottom;
-    // Fixed bottom section: progress(~68) + gap(8) + controls(~56) + bottom padding
-    final bottomFixedH = 68.0 + 8.0 + 56.0 + (bottomPad > 0 ? bottomPad + 8 : 16);
+    // Fixed bottom section: progress(~68) + gap(8) + controls(~56) + bottom padding (80 + bottomPad)
+    final bottomFixedH = 68.0 + 8.0 + 56.0 + 80.0 + bottomPad;
     // Fixed top section: status bar space + header row (~56)
     final topFixedH = (topPad + 8) + 56.0;
 
@@ -274,7 +274,7 @@ class _StandardLyricsLayout extends StatelessWidget {
 
           Padding(
             padding: EdgeInsets.only(
-              bottom: bottomPad > 0 ? bottomPad + 8 : 16,
+              bottom: 80.0 + bottomPad,
             ),
             child: const _StdLyricsControls(),
           ),
