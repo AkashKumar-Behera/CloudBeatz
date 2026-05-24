@@ -132,16 +132,16 @@ class _PlayerControlWidgetState extends State<PlayerControlWidget> {
                          thumbColor: Colors.white,
                        ),
                        child: SquigglySlider(
-                         key: ValueKey('${wavyEnabled}_${isPlaying}_${amplitude}_${wavelength}_${speed}'),
+                         key: ValueKey('${wavyEnabled}_${isPlaying}_${amplitude}_${wavelength}_${speed}_${_dragValue != null}'),
                          value: displayVal,
                          min: 0.0,
                          max: maxVal,
                          activeColor: Colors.white,
                          inactiveColor: Colors.white.withAlpha(35),
                          thumbColor: Colors.white,
-                         squiggleAmplitude: wavyEnabled && isPlaying ? amplitude : 0.0,
+                         squiggleAmplitude: (wavyEnabled && isPlaying && _dragValue == null) ? amplitude : 0.0,
                          squiggleWavelength: wavelength,
-                         squiggleSpeed: wavyEnabled && isPlaying ? speed : 0.0,
+                         squiggleSpeed: (wavyEnabled && isPlaying && _dragValue == null) ? speed : 0.0,
                          onChanged: (value) {
                            setState(() {
                              _dragValue = value;

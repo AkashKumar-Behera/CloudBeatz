@@ -1031,16 +1031,16 @@ class _SquigglyProgressBarState extends State<_SquigglyProgressBar> {
                 thumbColor: Colors.white,
               ),
               child: SquigglySlider(
-                key: ValueKey('${wavyEnabled}_${playing}_${amplitude}_${wavelength}_${speed}'),
+                key: ValueKey('${wavyEnabled}_${playing}_${amplitude}_${wavelength}_${speed}_${_dragValue != null}'),
                 value: displayVal,
                 min: 0.0,
                 max: maxVal,
                 activeColor: Colors.white,
                 inactiveColor: Colors.white.withAlpha(35),
                 thumbColor: Colors.white,
-                squiggleAmplitude: wavyEnabled && playing ? amplitude : 0.0,
+                squiggleAmplitude: (wavyEnabled && playing && _dragValue == null) ? amplitude : 0.0,
                 squiggleWavelength: wavelength,
-                squiggleSpeed: wavyEnabled && playing ? speed : 0.0,
+                squiggleSpeed: (wavyEnabled && playing && _dragValue == null) ? speed : 0.0,
                 onChanged: (v) {
                   setState(() {
                     _dragValue = v;
