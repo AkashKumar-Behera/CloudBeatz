@@ -686,8 +686,15 @@ class _LyricsMenuButton extends StatelessWidget {
               await _launchLyricsSearch(query);
               break;
             case 'search_timestamp':
-              final query =
-                  '${pc.currentSong.value?.title ?? ''} ${pc.currentSong.value?.artist ?? ''}';
+              final title = pc.currentSong.value?.title ?? '';
+              var artist = pc.currentSong.value?.artist ?? '';
+              final separators = RegExp(r'[,/;&]');
+              if (artist.contains(separators)) {
+                artist = artist.split(separators).first.trim();
+              } else {
+                artist = artist.trim();
+              }
+              final query = '$title $artist'.trim();
               await _launchLyricsSearch(query, useLyricsify: true);
               break;
             case 'edit':
