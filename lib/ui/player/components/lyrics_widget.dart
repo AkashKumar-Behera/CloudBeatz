@@ -47,23 +47,43 @@ class _PlainLyricsView extends StatelessWidget {
       physics: const BouncingScrollPhysics(),
       padding: padding,
       child: Obx(
-        () => TextSelectionTheme(
-          data: Theme.of(context).textSelectionTheme,
-          child: SelectableText(
-            playerController.lyrics["plainLyrics"] == "NA"
-                ? "lyricsNotAvailable".tr
-                : playerController.lyrics["plainLyrics"],
-            textAlign: TextAlign.left,
-            style: playerController.isDesktopLyricsDialogOpen
-                ? Theme.of(context).textTheme.titleMedium!
-                : Theme.of(context).textTheme.titleMedium!.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 20,
-                      height: 1.7,
+        () {
+          final isNA = playerController.lyrics["plainLyrics"] == "NA";
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextSelectionTheme(
+                data: Theme.of(context).textSelectionTheme,
+                child: SelectableText(
+                  isNA ? "lyricsNotAvailable".tr : playerController.lyrics["plainLyrics"],
+                  textAlign: TextAlign.left,
+                  style: playerController.isDesktopLyricsDialogOpen
+                      ? Theme.of(context).textTheme.titleMedium!
+                      : Theme.of(context).textTheme.titleMedium!.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 20,
+                            height: 1.7,
+                          ),
+                ),
+              ),
+              if (!isNA) ...[
+                const SizedBox(height: 35),
+                Center(
+                  child: Text(
+                    "Lyrics synchronized by Akash ✨",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.35),
+                      fontStyle: FontStyle.italic,
                     ),
-          ),
-        ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ]
+            ],
+          );
+        }
       ),
     );
   }
@@ -232,104 +252,118 @@ class _SyncedLyricsViewState extends State<_SyncedLyricsView> {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: List.generate(lines.length, (index) {
-              final line = lines[index];
-              final isCurrent = index == currentIdx;
-              final difference = (index - currentIdx).abs();
+            children: [
+              ...List.generate(lines.length, (index) {
+                final line = lines[index];
+                final isCurrent = index == currentIdx;
+                final difference = (index - currentIdx).abs();
 
-              final double fontSize;
-              final double opacity;
-              final FontWeight fontWeight;
+                final double fontSize;
+                final double opacity;
+                final FontWeight fontWeight;
 
-              if (isCurrent) {
-                fontSize = 28;
-                opacity = 1.0;
-                fontWeight = FontWeight.w800;
-              } else if (difference == 1) {
-                fontSize = 20;
-                opacity = 0.50;
-                fontWeight = FontWeight.w600;
-              } else {
-                fontSize = 18;
-                opacity = 0.28;
-                fontWeight = FontWeight.w500;
-              }
+                if (isCurrent) {
+                  fontSize = 28;
+                  opacity = 1.0;
+                  fontWeight = FontWeight.w800;
+                } else if (difference == 1) {
+                  fontSize = 20;
+                  opacity = 0.50;
+                  fontWeight = FontWeight.w600;
+                } else {
+                  fontSize = 18;
+                  opacity = 0.28;
+                  fontWeight = FontWeight.w500;
+                }
 
-              final text = line.mainText ?? '';
-              if (text.isEmpty) return const SizedBox.shrink();
+                final text = line.mainText ?? '';
+                if (text.isEmpty) return const SizedBox.shrink();
 
-              final key = _itemKeys.putIfAbsent(index, () => GlobalKey());
+                final key = _itemKeys.putIfAbsent(index, () => GlobalKey());
 
-              final bool isInstrumental = text == "• • •";
+                final bool isInstrumental = text == "• • •";
 
-              Widget contentWidget;
-              if (isInstrumental) {
-                contentWidget = Container(
-                  width: double.infinity,
-                  constraints: const BoxConstraints(minHeight: estimateLineHeight),
-                  alignment: Alignment.centerLeft,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: _PulsingDots(isActive: isCurrent),
-                );
-              } else if (isCurrent) {
-                contentWidget = Container(
-                  width: double.infinity,
-                  constraints: const BoxConstraints(minHeight: estimateLineHeight),
-                  alignment: Alignment.centerLeft,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: _ActiveGlowText(
-                    text: text,
-                    startTime: line.startTime ?? 0,
-                    endTime: line.endTime ?? 0,
-                    playerController: widget.playerController,
-                    fontSize: fontSize,
-                    fontWeight: fontWeight,
-                    letterSpacing: -0.3,
-                    height: 1.3,
-                  ),
-                );
-              } else {
-                contentWidget = AnimatedOpacity(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  opacity: opacity,
-                  child: AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                    textAlign: TextAlign.left,
-                    style: TextStyle(
+                Widget contentWidget;
+                if (isInstrumental) {
+                  contentWidget = Container(
+                    width: double.infinity,
+                    constraints: const BoxConstraints(minHeight: estimateLineHeight),
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: _PulsingDots(isActive: isCurrent),
+                  );
+                } else if (isCurrent) {
+                  contentWidget = Container(
+                    width: double.infinity,
+                    constraints: const BoxConstraints(minHeight: estimateLineHeight),
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: _ActiveGlowText(
+                      text: text,
+                      startTime: line.startTime ?? 0,
+                      endTime: line.endTime ?? 0,
+                      playerController: widget.playerController,
                       fontSize: fontSize,
                       fontWeight: fontWeight,
-                      color: Colors.white,
-                      height: 1.5,
-                      letterSpacing: 0.0,
+                      letterSpacing: -0.3,
+                      height: 1.3,
                     ),
-                    child: Container(
-                      width: double.infinity,
-                      constraints: const BoxConstraints(minHeight: estimateLineHeight),
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        text,
-                        textAlign: TextAlign.left,
-                        maxLines: null,
+                  );
+                } else {
+                  contentWidget = AnimatedOpacity(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    opacity: opacity,
+                    child: AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      textAlign: TextAlign.left,
+                      style: TextStyle(
+                        fontSize: fontSize,
+                        fontWeight: fontWeight,
+                        color: Colors.white,
+                        height: 1.5,
+                        letterSpacing: 0.0,
+                      ),
+                      child: Container(
+                        width: double.infinity,
+                        constraints: const BoxConstraints(minHeight: estimateLineHeight),
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          text,
+                          textAlign: TextAlign.left,
+                          maxLines: null,
+                        ),
                       ),
                     ),
-                  ),
-                );
-              }
+                  );
+                }
 
-              return GestureDetector(
-                key: key,
-                onTap: () {
-                  if (line.startTime != null) {
-                    widget.playerController.seek(Duration(milliseconds: line.startTime!));
-                  }
-                },
-                behavior: HitTestBehavior.translucent,
-                child: contentWidget,
-              );
-            }),
+                return GestureDetector(
+                  key: key,
+                  onTap: () {
+                    if (line.startTime != null) {
+                      widget.playerController.seek(Duration(milliseconds: line.startTime!));
+                    }
+                  },
+                  behavior: HitTestBehavior.translucent,
+                  child: contentWidget,
+                );
+              }),
+              const SizedBox(height: 35),
+              Center(
+                child: Text(
+                  "Lyrics synchronized by Akash ✨",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.35),
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
           ),
         );
       });
