@@ -687,8 +687,8 @@ class _LyricsMenuButton extends StatelessWidget {
               break;
             case 'search_timestamp':
               final query =
-                  '${pc.currentSong.value?.title ?? ''} ${pc.currentSong.value?.artist ?? ''} lrc lyrics';
-              await _launchLyricsSearch(query);
+                  '${pc.currentSong.value?.title ?? ''} ${pc.currentSong.value?.artist ?? ''}';
+              await _launchLyricsSearch(query, useLyricsify: true);
               break;
             case 'edit':
               _showInlineEditor(context);
@@ -702,8 +702,10 @@ class _LyricsMenuButton extends StatelessWidget {
     });
   }
 
-  Future<void> _launchLyricsSearch(String query) async {
-    final uri = Uri.https('www.google.com', '/search', {'q': query});
+  Future<void> _launchLyricsSearch(String query, {bool useLyricsify = false}) async {
+    final uri = useLyricsify
+        ? Uri.https('www.lyricsify.com', '/search', {'q': query})
+        : Uri.https('www.google.com', '/search', {'q': query});
     try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (_) {
