@@ -33,4 +33,14 @@ class SyncedLyricsService {
     }
     return null;
   }
+
+  static Future<void> saveLyrics(
+      String songId, Map<String, dynamic> lyricsData) async {
+    final lyricsBox = await Hive.openBox("lyrics");
+    try {
+      await lyricsBox.put(songId, lyricsData);
+    } finally {
+      await lyricsBox.close();
+    }
+  }
 }

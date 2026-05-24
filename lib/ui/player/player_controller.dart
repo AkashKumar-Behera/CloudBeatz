@@ -838,6 +838,38 @@ class PlayerController extends GetxController
     await showLyrics();
   }
 
+  /// Updates manually pasted lyrics and saves them to local Hive database
+  Future<void> updateSongLyrics(String newText) async {
+    final song = currentSong.value;
+    if (song == null) return;
+
+    final hasTimestamps = RegExp(r'\[\d+:\d+').hasMatch(newText);
+    Map<String, dynamic> lyricsData;
+
+    if (hasTimestamps) {
+      final cleanText = newText
+          .split('\n')
+          .map((line) =>
+              line.replaceAll(RegExp(r'\[\d+:\d+(?:\.\d+)?\]'), '').trim())
+          .join('\n');
+      lyricsData = {
+        'synced': newText,
+        'plainLyrics': cleanText.isEmpty ? 'NA' : cleanText,
+      };
+      lyrics.value = lyricsData;
+      changeLyricsMode(0);
+    } else {
+      lyricsData = {
+        'synced': '',
+        'plainLyrics': newText.isEmpty ? 'NA' : newText,
+      };
+      lyrics.value = lyricsData;
+      changeLyricsMode(1);
+    }
+
+    await SyncedLyricsService.saveLyrics(song.id, lyricsData);
+  }
+
   void sleepEndOfSong() {
     isSleepTimerActive.value = true;
     isSleepEndOfSongActive.value = true;

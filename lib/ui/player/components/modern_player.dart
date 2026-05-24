@@ -798,27 +798,12 @@ class _LyricsInlineEditor extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20)),
                     ),
-                    onPressed: () {
+                    onPressed: () async {
                       final newText = controller.text.trim();
-                      final hasTimestamps = RegExp(r'\[\d+:\d+').hasMatch(newText);
-                      if (hasTimestamps) {
-                        final cleanText = newText
-                            .split('\n')
-                            .map((line) => line.replaceAll(RegExp(r'\[\d+:\d+(?:\.\d+)?\]'), '').trim())
-                            .join('\n');
-                        pc.lyrics.value = {
-                          'synced': newText,
-                          'plainLyrics': cleanText.isEmpty ? 'NA' : cleanText,
-                        };
-                        pc.changeLyricsMode(0);
-                      } else {
-                        pc.lyrics.value = {
-                          'synced': '',
-                          'plainLyrics': newText.isEmpty ? 'NA' : newText,
-                        };
-                        pc.changeLyricsMode(1);
+                      await pc.updateSongLyrics(newText);
+                      if (context.mounted) {
+                        Navigator.pop(context);
                       }
-                      Navigator.pop(context);
                     },
                     child: Text('save'.tr),
                   ),
