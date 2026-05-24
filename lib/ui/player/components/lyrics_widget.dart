@@ -265,6 +265,7 @@ class _SyncedLyricsViewState extends State<_SyncedLyricsView> {
               Widget contentWidget;
               if (isInstrumental) {
                 contentWidget = Container(
+                  width: double.infinity,
                   constraints: const BoxConstraints(minHeight: estimateLineHeight),
                   alignment: Alignment.centerLeft,
                   padding: const EdgeInsets.symmetric(vertical: 8),
@@ -272,6 +273,7 @@ class _SyncedLyricsViewState extends State<_SyncedLyricsView> {
                 );
               } else if (isCurrent) {
                 contentWidget = Container(
+                  width: double.infinity,
                   constraints: const BoxConstraints(minHeight: estimateLineHeight),
                   alignment: Alignment.centerLeft,
                   padding: const EdgeInsets.symmetric(vertical: 8),
@@ -294,6 +296,7 @@ class _SyncedLyricsViewState extends State<_SyncedLyricsView> {
                   child: AnimatedDefaultTextStyle(
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeInOut,
+                    textAlign: TextAlign.left,
                     style: TextStyle(
                       fontSize: fontSize,
                       fontWeight: fontWeight,
@@ -302,6 +305,7 @@ class _SyncedLyricsViewState extends State<_SyncedLyricsView> {
                       letterSpacing: 0.0,
                     ),
                     child: Container(
+                      width: double.infinity,
                       constraints: const BoxConstraints(minHeight: estimateLineHeight),
                       alignment: Alignment.centerLeft,
                       padding: const EdgeInsets.symmetric(vertical: 8),
