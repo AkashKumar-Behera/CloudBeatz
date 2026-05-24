@@ -659,6 +659,9 @@ class MusicServices extends getx.GetxService {
     }
 
     String? type;
+    if (filter != null) {
+      type = filter.substring(0, filter.length - 1).toLowerCase();
+    }
 
     for (var res in results) {
       String category;
@@ -672,7 +675,16 @@ class MusicServices extends getx.GetxService {
       if (shelf != null) {
         dynamic itemResults = shelf['contents'];
         String? typeFilter = filter;
-        category = "mixed"; // Just a default value
+        category = nav(res, ['musicShelfRenderer', ...title_text]) ??
+            (typeFilter != null ? typeFilter.replaceAll(" ", "_").toLowerCase() : "mixed");
+        
+        String displayCategory = category;
+        if (res['musicShelfRenderer'] == null && filter != null) {
+          String firstLetter = category.substring(0, 1).toUpperCase();
+          String rest = category.substring(1);
+          displayCategory = firstLetter + rest;
+        }
+
         final mixedItems = parseSearchResults(itemResults,
             ['artist', 'playlist', 'song', 'video', 'station'], type, category);
         if (filter == null) {
@@ -688,23 +700,12 @@ class MusicServices extends getx.GetxService {
             }
           }
         } else {
-          category = nav(res, ['musicShelfRenderer', ...title_text]) ??
-              (filter.replaceAll(" ", "_").toLowerCase());
-          
-          String displayCategory = category;
-          if (res['musicShelfRenderer'] == null) {
-            String firstLetter = category.substring(0, 1).toUpperCase();
-            String rest = category.substring(1);
-            displayCategory = firstLetter + rest;
-          }
-
           if (!searchResults.containsKey(displayCategory)) {
             searchResults[displayCategory] = [];
           }
           (searchResults[displayCategory] as List).addAll(mixedItems);
           category = displayCategory;
         }
-        type = typeFilter?.substring(0, typeFilter.length - 1).toLowerCase();
 
         if (filter != null) {
           requestFunc(additionalParams) async =>
