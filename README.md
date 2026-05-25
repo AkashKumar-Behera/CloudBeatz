@@ -65,6 +65,11 @@ Built with packages such as:
 - **Offline Storage:** Utilizing `Hive` boxes to store user preferences, search history, cached track info, and custom offline playlists efficiently with minimal overhead.
 - **Audio Layer:** Integrates `just_audio` on mobile and `media_kit` on desktop through a unified background-capable `audio_service` implementation to guarantee a seamless listening experience.
 
+### 🎨 Dynamic Theming & Customization
+- **Dynamic Accent Colors:** Extract dominant colors from current album/song artwork to dynamically adjust the application theme and player background.
+- **AMOLED Dark Mode:** Sleek dark mode design optimized for low-light environments and battery saving on OLED screens.
+- **Adaptive Layouts:** Seamlessly adapts navigation patterns between a bottom navigation bar for mobile and a side navigation rail for desktop/tablet screens.
+
 ---
 
 ## 🚀 How to Run & Build
