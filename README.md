@@ -142,6 +142,16 @@ This software comes with **no warranties** and **no liabilities** of any kind.
 
 ---
 
+## 🗺️ Roadmap
+
+Here are a few exciting features and enhancements planned for future updates:
+- [ ] **Multi-threaded Downloads:** Improve the download manager to support speedier concurrent track downloading and pause/resume actions.
+- [ ] **Third-party Playlist Imports:** Allow importing playlists from platforms like Spotify and Apple Music via text/URL parsing.
+- [ ] **Widescreen UI Polish:** Further optimize the desktop UI for extremely wide monitors and multi-window layouts.
+- [ ] **Local Metadata Support:** Improve offline playback by parsing ID3 and other tags from custom local folders.
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome! Since this is a personal and educational repository, the focus is on maintaining high-quality UI/UX, fixing critical bugs, and improving audio performance.
