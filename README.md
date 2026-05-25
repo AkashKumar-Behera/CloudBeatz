@@ -142,6 +142,15 @@ This software comes with **no warranties** and **no liabilities** of any kind.
 
 ---
 
+## 🔍 Troubleshooting
+
+Here are a few common issues and how to resolve them:
+* **Audio doesn't play or buffers infinitely:** Check your internet connection. In some geographical regions, YouTube streaming endpoints might be throttled or blocked. Try connecting via a VPN.
+* **Android build fails (Gradle errors):** Run `flutter clean` followed by `flutter pub get` to reset and clear the build cache.
+* **Desktop audio issues:** Make sure your system's audio drivers are up to date and native library dependencies for `media_kit` are properly set up.
+
+---
+
 ## 🗺️ Roadmap
 
 Here are a few exciting features and enhancements planned for future updates:
