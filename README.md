@@ -60,6 +60,11 @@ Built with packages such as:
 - `youtube_explode_dart` – for streaming links  
 - `hive` / `hive_flutter` – for local database storage  
 
+### 🏛️ Architecture Details
+- **State Management:** Powered by `GetX` for reactive state updates, easy dependency injection (`Get.put()`, `Get.find()`), and clean separation of UI from business logic.
+- **Offline Storage:** Utilizing `Hive` boxes to store user preferences, search history, cached track info, and custom offline playlists efficiently with minimal overhead.
+- **Audio Layer:** Integrates `just_audio` on mobile and `media_kit` on desktop through a unified background-capable `audio_service` implementation to guarantee a seamless listening experience.
+
 ---
 
 ## 🚀 How to Run & Build
