@@ -34,6 +34,20 @@ Hosted demo: 🌐 [https://cloudbeatz.web.app](https://cloudbeatz.web.app)
 
 ---
 
+## 🛠️ Prerequisites
+
+Before you begin, make sure you have the following installed:
+- **Flutter SDK** (Version `>=3.19.0`)
+- **Dart SDK** (Bundled with Flutter)
+- **Git** (for version control and submodules)
+
+### Platform-specific requirements:
+- **Android**: Android SDK & Android Studio (for compilation)
+- **Windows**: Visual Studio with "Desktop development with C++" workload
+- **Linux**: `clang`, `cmake`, `ninja-build`, `pkg-config`, `libgtk-3-dev`
+
+---
+
 ## 🧩 Technical Overview
 
 CloudBeatz is a **cross-platform Flutter app** supporting **Android, Windows, and Linux**, designed for music playback, streaming, and playlist management.
