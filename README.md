@@ -142,6 +142,21 @@ This software comes with **no warranties** and **no liabilities** of any kind.
 
 ---
 
+## 🤝 Contributing
+
+Contributions are welcome! Since this is a personal and educational repository, the focus is on maintaining high-quality UI/UX, fixing critical bugs, and improving audio performance.
+
+If you want to contribute:
+1. **Fork** the project
+2. Create a new branch: `git checkout -b feature/AmazingFeature`
+3. Commit your changes: `git commit -m "feat: add some AmazingFeature"`
+4. Push to the branch: `git push origin feature/AmazingFeature`
+5. Open a **Pull Request**
+
+Please make sure your changes follow the rules in `analysis_options.yaml` and keep the GPL-3.0 licensing in mind.
+
+---
+
 ## 📚 Learning References & Credits
 
 This app was inspired by the amazing open-source community.  
