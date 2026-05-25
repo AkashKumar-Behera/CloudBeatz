@@ -62,6 +62,34 @@ Built with packages such as:
 
 ---
 
+## 🚀 How to Run & Build
+
+To get a local copy up and running, follow these steps:
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/AkashKumar-Behera/CloudBeatz.git
+cd CloudBeatz
+```
+
+### 2. Fetch Dependencies
+```bash
+flutter pub get
+```
+
+### 3. Run the App
+Connect your device or start an emulator and run:
+```bash
+flutter run
+```
+
+### 4. Build for Production
+* **Android (APK):** `flutter build apk --release`
+* **Windows:** `flutter build windows --release`
+* **Linux:** `flutter build linux --release`
+
+---
+
 ## 📄 License
 
 This project is derived from **Harmony-Music**, which is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
