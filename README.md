@@ -28,7 +28,9 @@ Hosted demo: 🌐 [https://cloudbeatz.web.app](https://cloudbeatz.web.app)
 - Sleep timer  
 - No advertisements  
 - No login required  
-- Piped playlist integration
+- Piped playlist integration  
+- Real-time Collaborative Jam listening session support
+
 
 ---
 
