@@ -132,38 +132,41 @@ class JamBottomSheet extends StatelessWidget {
             width: 1,
           ),
         ),
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        padding: const EdgeInsets.only(
+          bottom: 16,
           top: 12,
           left: 24,
           right: 24,
         ),
         child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Pull Handle
-              Container(
-                width: 48,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(2),
+          child: Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Pull Handle
+                Container(
+                  width: 48,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              
-              if (controller.isLoading.isTrue)
-                const SizedBox(
-                  height: 200,
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: _buildStateContent(context, controller),
-                ),
-            ],
+                const SizedBox(height: 24),
+                
+                if (controller.isLoading.isTrue)
+                  const SizedBox(
+                    height: 200,
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: _buildStateContent(context, controller),
+                  ),
+              ],
+            ),
           ),
         ),
       );
@@ -476,9 +479,9 @@ class JamBottomSheet extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 decoration: BoxDecoration(
-                  color: primaryColor.withOpacity(0.08),
+                  color: Colors.greenAccent.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: primaryColor.withOpacity(0.2), width: 1.5),
+                  border: Border.all(color: Colors.greenAccent.withOpacity(0.25), width: 1.5),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -487,7 +490,7 @@ class JamBottomSheet extends StatelessWidget {
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       child: Text(
                         char,
-                        style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: primaryColor),
+                        style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: Colors.greenAccent),
                       ),
                     );
                   }).toList(),
