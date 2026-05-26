@@ -580,9 +580,9 @@ class SettingsScreen extends StatelessWidget {
                       () => CustSwitch(
                           value: settingsController.autoOpenPlayer.value,
                           onChanged: settingsController.toggleAutoOpenPlayer),
-                    ),
+                     ),
                   ),
-                  if (!isDesktop)
+                  if (GetPlatform.isAndroid)
                     ListTile(
                       contentPadding:
                           const EdgeInsets.only(left: 5, right: 10, top: 0),
@@ -597,7 +597,7 @@ class SettingsScreen extends StatelessWidget {
                         }
                       },
                     ),
-                  if (!isDesktop)
+                  if (GetPlatform.isAndroid)
                     ListTile(
                       contentPadding: const EdgeInsets.only(left: 5, right: 10),
                       title: Text("stopMusicOnTaskClear".tr),
