@@ -77,16 +77,17 @@ class JamBar extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor.withOpacity(0.9),
+          color: Theme.of(context).cardColor.withOpacity(0.95),
           borderRadius: BorderRadius.circular(27),
           border: Border.all(
-            color: primaryColor.withOpacity(0.2),
-            width: 1.5,
+            color: Colors.white.withOpacity(0.08),
+            width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 12,
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 16,
+              spreadRadius: 2,
               offset: const Offset(0, 4),
             )
           ],
@@ -98,18 +99,18 @@ class JamBar extends StatelessWidget {
             const SizedBox(width: 10),
             Text(
               "Jam ${session.code}",
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
             ),
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: primaryColor.withOpacity(0.15),
+                color: Colors.greenAccent.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
                 "${jamService.participants.length} listeners",
-                style: TextStyle(color: primaryColor, fontSize: 10, fontWeight: FontWeight.bold),
+                style: const TextStyle(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.bold),
               ),
             ),
             const Spacer(),
@@ -120,12 +121,12 @@ class JamBar extends StatelessWidget {
             _buildEmojiButton("😮", jamService),
             
             const SizedBox(width: 4),
-            VerticalDivider(color: Colors.grey.withOpacity(0.3), indent: 14, endIndent: 14),
+            VerticalDivider(color: Colors.white.withOpacity(0.15), indent: 14, endIndent: 14),
             const SizedBox(width: 4),
             
             // Share button
             IconButton(
-              icon: Icon(Icons.share_outlined, size: 20, color: primaryColor),
+              icon: Icon(Icons.share_outlined, size: 20, color: Colors.white.withOpacity(0.8)),
               onPressed: () {
                 final link = jamService.getShareLink();
                 Clipboard.setData(ClipboardData(text: link));
