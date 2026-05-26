@@ -94,6 +94,8 @@ class JamService extends GetxService {
       );
 
       await sessionRef.set(session.toMap());
+      // Automatically delete the session node from RTDB if host crashes/disconnects
+      await sessionRef.onDisconnect().remove();
 
       isInJam.value = true;
       isHost.value = true;
@@ -148,6 +150,8 @@ class JamService extends GetxService {
       );
 
       await sessionRef.child('participants/$myDeviceId').set(myParticipant.toMap());
+      // Automatically remove this guest from participants on disconnect/crash
+      await sessionRef.child('participants/$myDeviceId').onDisconnect().remove();
 
       isInJam.value = true;
       isHost.value = false;
@@ -327,8 +331,12 @@ class JamService extends GetxService {
     if (!localOnly && code != null) {
       try {
         if (isHost.value) {
-          await _db.ref('jams/$code/isActive').set(false);
+          // Cancel onDisconnect first so it doesn't trigger redundancy, then delete the entire session node
+          await _db.ref('jams/$code').onDisconnect().cancel();
+          await _db.ref('jams/$code').remove();
         } else {
+          // Cancel onDisconnect first, then remove guest node
+          await _db.ref('jams/$code/participants/$myDeviceId').onDisconnect().cancel();
           await _db.ref('jams/$code/participants/$myDeviceId').remove();
         }
       } catch (e) {
