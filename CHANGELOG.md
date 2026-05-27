@@ -1,4 +1,28 @@
-## 1.11.1
+# 1.12.2
+* Added wakelock support to keep screen awake while playing music (can be toggled from settings)
+* Enabled downloading in external storage for Android devices
+* Fixed Home discover content loading issue
+* Added more options to export playlist (CSV file & Direct export to YT Music (Song limit - 50))
+
+# 1.12.1
+* Fixed Search issue
+* Fixed Artist-song content
+
+## 1.12.0
+* Redesigned Album & Playlist screen
+* Added Basic Interface for Android Auto #496 #492 #427 #111
+* Import/export functionality for playlists by @ani-sh-arma
+* Android splash screen implemention for all devices by @girish54321
+* (Windows)-TitleBar Color implementation
+* Fixed Album,Single loading issue in Artist acreen #509
+* Fixed Miniplayer in landscape mode #462
+* Fixed playlist add ui overflow #500
+* Fixed restoration of downloaded songs #552
+* Fixed Chinease language issue #548
+* Fixed trigger dynamic mode for offline songs #537
+* Fixed screen freeze issue in Android #348 #492
+
+## 1.11.2
 * Fixed rendering issue in Android (happening due to flutter upgrade)
 
 ## 1.11.1

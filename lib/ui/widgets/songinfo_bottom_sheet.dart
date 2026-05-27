@@ -2,7 +2,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
-import 'package:ionicons/ionicons.dart';
+
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -22,6 +22,8 @@ import '../navigator.dart';
 import 'song_download_btn.dart';
 import 'image_widget.dart';
 import 'song_info_dialog.dart';
+import '../../services/jam_service.dart';
+
 
 class SongInfoBottomSheet extends StatelessWidget {
   const SongInfoBottomSheet(this.song,
@@ -107,6 +109,17 @@ class SongInfoBottomSheet extends StatelessWidget {
                 playerController.startRadio(song);
               },
             ),
+            ListTile(
+              visualDensity: const VisualDensity(vertical: -1),
+              leading: const Icon(Icons.graphic_eq, color: Colors.greenAccent),
+              title: const Text("Collaborative Jam"),
+              onTap: () {
+                Navigator.of(context).pop();
+                final jamService = Get.find<JamService>();
+                jamService.showJamBottomSheet();
+              },
+            ),
+
             (calledFromPlayer || calledFromQueue)
                 ? const SizedBox.shrink()
                 : ListTile(
@@ -164,7 +177,7 @@ class SongInfoBottomSheet extends StatelessWidget {
                       }
                       Get.toNamed(ScreenNavigationSetup.albumScreen,
                           id: ScreenNavigationSetup.id,
-                          arguments: song.extras!['album']['id']);
+                          arguments: (null, song.extras!['album']['id']));
                     },
                   )
                 : const SizedBox.shrink(),
@@ -259,7 +272,7 @@ class SongInfoBottomSheet extends StatelessWidget {
                         launchUrl(Uri.parse(
                             "https://youtube.com/watch?v=${song.id}"));
                       },
-                      icon: const Icon(Ionicons.logo_youtube),
+                      icon: const Icon(Icons.smart_display),
                     ),
                     IconButton(
                       splashRadius: 10,
@@ -267,7 +280,7 @@ class SongInfoBottomSheet extends StatelessWidget {
                         launchUrl(Uri.parse(
                             "https://music.youtube.com/watch?v=${song.id}"));
                       },
-                      icon: const Icon(Ionicons.play_circle),
+                      icon: const Icon(Icons.play_circle),
                     )
                   ],
                 ),

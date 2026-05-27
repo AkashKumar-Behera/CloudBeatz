@@ -1,21 +1,23 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:hive/hive.dart';
+
 
 import '/ui/navigator.dart';
 import '/ui/widgets/sort_widget.dart';
 
-void printERROR(dynamic text, {String tag = "Cloud Beatz"}) {
+void printERROR(dynamic text, {String tag = "CloudBeatz"}) {
   if (kReleaseMode) return;
   debugPrint("\x1B[31m[$tag]: $text\x1B[0m");
 }
 
-void printWarning(dynamic text, {String tag = 'Cloud Beatz'}) {
+void printWarning(dynamic text, {String tag = 'CloudBeatz'}) {
   if (kReleaseMode) return;
   debugPrint("\x1B[33m[$tag]: $text\x1B[34m");
 }
 
-void printINFO(dynamic text, {String tag = 'Cloud Beatz'}) {
+void printINFO(dynamic text, {String tag = 'CloudBeatz'}) {
   if (kReleaseMode) return;
   debugPrint("\x1B[32m[$tag]: $text\x1B[34m");
 }
@@ -164,7 +166,7 @@ void sortArtist(
 Future<bool> newVersionCheck(String currentVersion) async {
   try {
     final tags = (await Dio()
-            .get("https://api.github.com/repos/anandnet/Harmony-Music/tags"))
+            .get("https://api.github.com/repos/AkashKumar-Behera/CloudBeatz/tags"))
         .data;
     final availableVersion = tags[0]['name'] as String;
     List currentVersion_ = currentVersion.substring(1).split(".");
@@ -197,3 +199,14 @@ String getTimeString(Duration time) {
       ? "${time.inHours}:${minutes.padLeft(2, "0")}:$seconds"
       : "$minutes:$seconds";
 }
+
+String getJamDisplayName() {
+  final box = Hive.box("AppPrefs");
+  return box.get('jamProfileName') ?? '';
+}
+
+void setJamDisplayName(String name) {
+  final box = Hive.box("AppPrefs");
+  box.put('jamProfileName', name);
+}
+

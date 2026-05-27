@@ -17,6 +17,8 @@ import '/ui/player/player_controller.dart';
 import '/ui/utils/theme_controller.dart';
 import 'components/custom_expansion_tile.dart';
 import 'settings_screen_controller.dart';
+import '../../../services/jam_service.dart';
+
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key, this.isBottomNavActive = false});
@@ -159,13 +161,83 @@ class SettingsScreen extends StatelessWidget {
                                 value: 0, child: Text("standard".tr)),
                             DropdownMenuItem(
                               value: 1,
-                              child: Text("gesture".tr),
+                              child: Text("modern".tr),
                             ),
                           ],
                           onChanged: settingsController.setPlayerUi,
                         ),
                       ),
                     ),
+                  if (!isDesktop)
+                    Obx(() => settingsController.playerUi.value >= 0
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ListTile(
+                                contentPadding:
+                                    const EdgeInsets.only(left: 5, right: 10),
+                                title: Text("wavyProgressBar".tr),
+                                subtitle: Text("wavyProgressBarDes".tr,
+                                    style:
+                                        Theme.of(context).textTheme.bodyMedium),
+                                trailing: Obx(
+                                  () => CustSwitch(
+                                      value: settingsController
+                                          .squigglySliderEnabled.value,
+                                      onChanged: settingsController
+                                          .toggleSquigglySlider),
+                                ),
+                              ),
+                              Obx(() => settingsController
+                                      .squigglySliderEnabled.value
+                                  ? Padding(
+                                      padding: const EdgeInsets.only(
+                                          left: 5, right: 10, bottom: 8),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          // Amplitude
+                                          Obx(() => _WaveSliderTile(
+                                                label:
+                                                    "Wave Height (Amplitude): ${settingsController.squigglyAmplitude.value.toStringAsFixed(1)}",
+                                                value: settingsController
+                                                    .squigglyAmplitude.value,
+                                                min: 0.0,
+                                                max: 10.0,
+                                                onChanged: settingsController
+                                                    .setSquigglyAmplitude,
+                                              )),
+                                          // Wavelength
+                                          Obx(() => _WaveSliderTile(
+                                                label:
+                                                    "Wave Width (Wavelength): ${settingsController.squigglyWavelength.value.toStringAsFixed(1)}",
+                                                value: settingsController
+                                                    .squigglyWavelength.value,
+                                                min: 1.0,
+                                                max: 40.0,
+                                                onChanged: settingsController
+                                                    .setSquigglyWavelength,
+                                              )),
+                                          // Speed
+                                          Obx(() => _WaveSliderTile(
+                                                label:
+                                                    "Wave Speed: ${settingsController.squigglySpeed.value.toStringAsFixed(3)}",
+                                                value: settingsController
+                                                    .squigglySpeed.value,
+                                                min: 0.0,
+                                                max: 0.2,
+                                                divisions: 40,
+                                                onChanged: settingsController
+                                                    .setSquigglySpeed,
+                                              )),
+                                        ],
+                                      ),
+                                    )
+                                  : const SizedBox.shrink()),
+                            ],
+                          )
+                        : const SizedBox.shrink()),
                   if (!isDesktop)
                     ListTile(
                         contentPadding:
@@ -205,8 +277,75 @@ class SettingsScreen extends StatelessWidget {
                 ],
               ),
               CustomExpansionTile(
+                title: "Jam Session (Collaborative)",
+                icon: Icons.graphic_eq,
+                children: [
+                  ListTile(
+                    contentPadding: const EdgeInsets.only(left: 5, right: 10),
+                    title: const Text("Jam Display Name"),
+                    subtitle: Obx(() {
+                      final jamService = Get.find<JamService>();
+                      final name = jamService.myDisplayName.value;
+                      return Text(
+                        name.isEmpty ? "Not set (Tap to set)" : name,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      );
+                    }),
+                    onTap: () {
+                      final jamService = Get.find<JamService>();
+                      final nameCon = TextEditingController(text: jamService.myDisplayName.value);
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          title: const Text("Set Jam Display Name"),
+                          content: TextField(
+                            controller: nameCon,
+                            maxLength: 15,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: const InputDecoration(
+                              hintText: "Enter a name",
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text("Cancel"),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                final name = nameCon.text.trim();
+                                if (name.isNotEmpty) {
+                                  jamService.updateDisplayName(name);
+                                  Get.snackbar("Name Saved", "Your Jam name has been updated");
+                                }
+                                Navigator.pop(context);
+                              },
+                              child: const Text("Save"),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    contentPadding: const EdgeInsets.only(left: 5, right: 10),
+                    title: const Text("Open Jam Dashboard"),
+                    subtitle: Text(
+                      "Start a new Jam session or join an active one.",
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    onTap: () {
+                      final jamService = Get.find<JamService>();
+                      jamService.showJamBottomSheet();
+                    },
+                  ),
+                ],
+              ),
+              CustomExpansionTile(
                   title: "content".tr,
                   icon: Icons.music_video,
+
                   children: [
                     ListTile(
                       contentPadding: const EdgeInsets.only(left: 5, right: 10),
@@ -354,9 +493,6 @@ class SettingsScreen extends StatelessWidget {
                         onChanged: settingsController.setStreamingQuality,
                       ),
                     ),
-                    onLongPress: () {
-                      settingsController.showDownLoc();
-                    },
                   ),
                   if (GetPlatform.isAndroid)
                     ListTile(
@@ -414,6 +550,17 @@ class SettingsScreen extends StatelessWidget {
                         )),
                   ListTile(
                       contentPadding: const EdgeInsets.only(left: 5, right: 10),
+                      title: Text("keepScreenOnWhilePlaying".tr),
+                      subtitle: Text("keepScreenOnWhilePlayingDes".tr,
+                          style: Theme.of(context).textTheme.bodyMedium),
+                      trailing: Obx(
+                        () => CustSwitch(
+                            value: settingsController.keepScreenAwake.value,
+                            onChanged:
+                                settingsController.toggleKeepScreenAwake),
+                      )),
+                  ListTile(
+                      contentPadding: const EdgeInsets.only(left: 5, right: 10),
                       title: Text("restoreLastPlaybackSession".tr),
                       subtitle: Text("restoreLastPlaybackSessionDes".tr,
                           style: Theme.of(context).textTheme.bodyMedium),
@@ -433,9 +580,9 @@ class SettingsScreen extends StatelessWidget {
                       () => CustSwitch(
                           value: settingsController.autoOpenPlayer.value,
                           onChanged: settingsController.toggleAutoOpenPlayer),
-                    ),
+                     ),
                   ),
-                  if (!isDesktop)
+                  if (GetPlatform.isAndroid)
                     ListTile(
                       contentPadding:
                           const EdgeInsets.only(left: 5, right: 10, top: 0),
@@ -450,7 +597,7 @@ class SettingsScreen extends StatelessWidget {
                         }
                       },
                     ),
-                  if (!isDesktop)
+                  if (GetPlatform.isAndroid)
                     ListTile(
                       contentPadding: const EdgeInsets.only(left: 5, right: 10),
                       title: Text("stopMusicOnTaskClear".tr),
@@ -536,34 +683,31 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Obx(() => settingsController.hideDloc.isFalse || isDesktop
-                      ? ListTile(
-                          trailing: TextButton(
-                            child: Text(
-                              "reset".tr,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium!
-                                  .copyWith(fontSize: 15),
-                            ),
-                            onPressed: () {
-                              settingsController.resetDownloadLocation();
-                            },
-                          ),
-                          contentPadding:
-                              const EdgeInsets.only(left: 5, right: 10, top: 0),
-                          title: Text("downloadLocation".tr),
-                          subtitle: Obx(() => Text(
-                              settingsController.isCurrentPathsupportDownDir
-                                  ? "In App storage directory"
-                                  : settingsController
-                                      .downloadLocationPath.value,
-                              style: Theme.of(context).textTheme.bodyMedium)),
-                          onTap: () async {
-                            settingsController.setDownloadLocation();
-                          },
-                        )
-                      : const SizedBox.shrink()),
+                  ListTile(
+                    trailing: TextButton(
+                      child: Text(
+                        "reset".tr,
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium!
+                            .copyWith(fontSize: 15),
+                      ),
+                      onPressed: () {
+                        settingsController.resetDownloadLocation();
+                      },
+                    ),
+                    contentPadding:
+                        const EdgeInsets.only(left: 5, right: 10, top: 0),
+                    title: Text("downloadLocation".tr),
+                    subtitle: Obx(() => Text(
+                        settingsController.isCurrentPathsupportDownDir
+                            ? "In App storage directory"
+                            : settingsController.downloadLocationPath.value,
+                        style: Theme.of(context).textTheme.bodyMedium)),
+                    onTap: () async {
+                      settingsController.setDownloadLocation();
+                    },
+                  ),
                   if (GetPlatform.isAndroid)
                     ListTile(
                       contentPadding: const EdgeInsets.only(left: 5, right: 10),
@@ -657,7 +801,7 @@ class SettingsScreen extends StatelessWidget {
                     contentPadding: const EdgeInsets.only(left: 5, right: 10),
                     title: Text("GitHub".tr),
                     subtitle: Text(
-                      "${"githubDes".tr}${((Get.find<PlayerController>().playerPanelMinHeight.value) == 0 || !isBottomNavActive) ? "" : "\n\n${settingsController.currentVersion} ${"by".tr} AkashKumar-Behera"}",
+                      "${"githubDes".tr}${((Get.find<PlayerController>().playerPanelMinHeight.value) == 0 || !isBottomNavActive) ? "" : "\n\n${settingsController.currentVersion} ${"by".tr} akash"}",
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     isThreeLine: true,
@@ -675,7 +819,7 @@ class SettingsScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         Text(
-                          "Cloud Beatz",
+                          "CloudBeatz",
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         Text(settingsController.currentVersion,
@@ -690,7 +834,7 @@ class SettingsScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 20.0),
             child: Text(
-              "${settingsController.currentVersion} ${"by".tr} Akash",
+              "${settingsController.currentVersion} ${"by".tr} akash",
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
@@ -841,4 +985,56 @@ Widget radioWidget(
                 : controller.onContentChange),
         title: Text(label),
       ));
+}
+
+/// A compact slider row used for wave animation parameter tuning.
+class _WaveSliderTile extends StatelessWidget {
+  final String label;
+  final double value;
+  final double min;
+  final double max;
+  final int? divisions;
+  final ValueChanged<double> onChanged;
+
+  const _WaveSliderTile({
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+    this.divisions,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, top: 8),
+          child: Text(
+            label,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium!
+                .copyWith(fontSize: 12, fontWeight: FontWeight.w500),
+          ),
+        ),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 2.5,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+          ),
+          child: Slider(
+            value: value.clamp(min, max),
+            min: min,
+            max: max,
+            divisions: divisions ?? 20,
+            onChanged: onChanged,
+          ),
+        ),
+      ],
+    );
+  }
 }

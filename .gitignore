@@ -59,4 +59,17 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# FVM Version Cache
+.fvm/
+.fvmrc
+
+settings.json
+
+android/app/.cxx/Debug/*
+
 /android/app/.cxx
+
+
+# Jam Firebase Credentials Configuration
+lib/services/firebase_config.dart

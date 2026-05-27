@@ -455,13 +455,25 @@ Map<String, dynamic> parseWatchTrack(Map<String, dynamic> data) {
 }
 
 String? getTabBrowseId(Map<String, dynamic> watchNextRenderer, int tabId) {
-  if (!watchNextRenderer['tabs'][tabId]['tabRenderer']
-      .containsKey('unselectable')) {
-    return watchNextRenderer['tabs'][tabId]['tabRenderer']['endpoint']
-        ['browseEndpoint']['browseId'];
-  } else {
-    return null;
+  try {
+    final tabs = watchNextRenderer['tabs'];
+    if (tabs == null || tabs is! List || tabs.length <= tabId) {
+      return null;
+    }
+    final tab = tabs[tabId];
+    if (tab == null || tab['tabRenderer'] == null) {
+      return null;
+    }
+    if (!tab['tabRenderer'].containsKey('unselectable')) {
+      final endpoint = tab['tabRenderer']['endpoint'];
+      if (endpoint != null && endpoint['browseEndpoint'] != null) {
+        return endpoint['browseEndpoint']['browseId'];
+      }
+    }
+  } catch (e) {
+    print("Error getting tab browse ID: $e");
   }
+  return null;
 }
 
 ///Parse playlist songs, Also used in Album Song parsing
@@ -711,9 +723,9 @@ List<dynamic> parseSearchResults(List<dynamic> results,
 }
 
 dynamic parseSearchResult(Map<String, dynamic> data,
-    List<String> searchResultTypes, String? resultType, String category) {
+    List<String> searchResultTypes, String? resultType, String? category) {
   if ((resultType != null && resultType.contains("playlist")) ||
-      category.contains("playlists")) {
+      category!.toLowerCase().contains("playlists")) {
     resultType = 'playlist';
   }
   int defaultOffset = (resultType == null) ? 2 : 0;
@@ -727,6 +739,18 @@ dynamic parseSearchResult(Map<String, dynamic> data,
   resultType = ((resultType == null)
       ? getSearchResultType(getItemText(data, 1), searchResultTypes)
       : resultType)!;
+
+  // Safety guard: if getSearchResultType() misclassified a playlist item as
+  // 'album' (e.g. creator name in subtitle didn't match any known type),
+  // correct it by inspecting the browse ID prefix.
+  if (resultType == 'album') {
+    final String? browseId = nav(data, navigation_browse_id);
+    if (browseId != null &&
+        (browseId.startsWith('VL') || browseId.startsWith('PL'))) {
+      resultType = 'playlist';
+    }
+  }
+
   searchResult['resultType'] = resultType;
 
   if (resultType != 'artist') {
@@ -988,6 +1012,20 @@ dynamic parseContentList(results, Function parseFunc) {
   }
 
   return contents;
+}
+
+Map<String, dynamic> parseChartsItemBrowseId(dynamic result) {
+  final title = nav(result,["musicTwoRowItemRenderer","title","runs",0,"text"]);
+  final browseId = nav(result,
+      ["musicTwoRowItemRenderer","title","runs",0,"navigationEndpoint","browseEndpoint","browseId"]);
+  if (title.contains('Trending')) {
+    return {'title': "Trending", 'browseId': browseId};
+  } else if (title.contains('Daily Top')) {
+    return {'title': "Top Music Videos", 'browseId': browseId};
+  }
+  else{
+    return {'title': title, 'browseId': browseId};
+  }
 }
 
 Map<String, dynamic> parseChartsItem(dynamic result) {

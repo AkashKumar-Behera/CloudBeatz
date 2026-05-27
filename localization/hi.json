@@ -214,6 +214,17 @@
     "appInfo": "ऐप की जानकारी",
     "content": "सामग्री",
     "gesture": "इशारा",
+    "modern": "मॉडर्न",
+    "wavyProgressBar": "वेवी प्रोग्रेस बार",
+    "wavyProgressBarDes": "प्रोग्रेस बार पर वेव इफेक्ट सक्षम करें",
+    "showSyncedLyrics": "सिंक्ड लिरिक्स दिखाएं",
+    "showPlainLyrics": "सादा लिरिक्स दिखाएं",
+    "fetchLyricsAgain": "लिरिक्स फिर से लोड करें",
+    "editLyrics": "लिरिक्स संपादित करें",
+    "searchLyricsOnline": "ऑनलाइन लिरिक्स खोजें",
+    "searchLyricsWithTimestamp": "टाइमस्टैम्प के साथ खोजें",
+    "searchWithTimestamp": "सिंक्ड लिरिक्स पेस्ट करें",
+    "save": "सहेजें",
     "music&Playback": "संगीत और प्लेबैक",
     "standard": "मानक",
     "urlSearchDes": "यूआरएल का पता चला है, संबंधित सामग्री को खोलने/चलाने के लिए उस पर क्लिक करें",
@@ -233,5 +244,7 @@
     "queuerearrangingDeniedMsg": "शफ़ल मोड सक्षम होने पर कतार को पुनः व्यवस्थित नहीं किया जा सकता",
     "loudnessNormalizationDes": "सभी गानों के लिए समान स्तर की ध्वनि निर्धारित करता है (प्रायोगिक) (पिछले संस्करण (< v1.10.0) पर डाउनलोड किए गए गानों पर काम नहीं करेगा)",
     "autoDownFavSongDes": "पसंदीदा में जोड़े जाने पर पसंदीदा गाने स्वचालित रूप से डाउनलोड करें",
-    "songInfo": "गाने की जानकारी"
+    "songInfo": "गाने की जानकारी",
+    "keepScreenOnWhilePlaying": "प्ले के दौरान स्क्रीन जला रखें",
+    "keepScreenOnWhilePlayingDes": "यदि सक्षम है, तो संगीत चलाते समय डिवाइस की स्क्रीन जगी रहेगी"
 }

@@ -1,10 +1,11 @@
 import 'dart:async';
-import 'package:flutter_lyric/lyric_ui/ui_netease.dart';
+import 'package:flutter_lyric/lyrics_reader.dart';
 import 'package:hive/hive.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
+import 'package:palette_generator/palette_generator.dart';
 
 import '../../models/playling_from.dart';
 import '../../services/downloader.dart';
@@ -12,6 +13,7 @@ import '../screens/Playlist/playlist_screen_controller.dart';
 import '../widgets/snackbar.dart';
 import '/services/synced_lyrics_service.dart';
 import '/ui/screens/Settings/settings_screen_controller.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../services/windows_audio_service.dart';
 import '../../utils/helper.dart';
 import '/models/media_Item_builder.dart';
@@ -19,6 +21,8 @@ import '../screens/Home/home_screen_controller.dart';
 import '../widgets/sliding_up_panel.dart';
 import '/models/durationstate.dart';
 import '/services/music_service.dart';
+import '../../services/jam_service.dart';
+
 
 class PlayerController extends GetxController
     with GetSingleTickerProviderStateMixin {
@@ -65,14 +69,34 @@ class PlayerController extends GetxController
   bool isDesktopLyricsDialogOpen = false;
   // 0 for play, 1 for pause, 2 for blank
   final gesturePlayerVisibleState = 2.obs;
-  final lyricUi =
-      UINetease(highlight: true, defaultSize: 20, defaultExtSize: 12);
+  final lyricUi = UINetease(
+    highlight: true,
+    // Active (playing) line — large and white (built into getPlayingMainTextStyle)
+    defaultSize: 22,
+    defaultExtSize: 14,
+    // Inactive lines — smaller to contrast with active
+    otherMainSize: 14,
+    // Left-align (Apple Music style)
+    lyricAlign: LyricAlign.LEFT,
+    // Bias: show active line at 30% from top (not center) for Apple Music feel
+    bias: 0.30,
+    // Tighter line spacing
+    lineGap: 16,
+    inlineGap: 16,
+  );
   RxMap<String, dynamic> lyrics =
       <String, dynamic>{"synced": "", "plainLyrics": ""}.obs;
   ScrollController scrollController = ScrollController();
   final GlobalKey<ScaffoldState> homeScaffoldkey = GlobalKey<ScaffoldState>();
 
+  // Album art extracted accent color for Modern Player
+  final extractedAccentColor = Rxn<Color>();
+  String? _lastExtractedSongId;
+
   final buttonState = PlayButtonState.paused.obs;
+
+  // track whether wakelock is currently enabled to avoid repeated calls
+  bool _wakelockActive = false;
 
   var _newSongFlag = true;
   final isCurrentSongBuffered = false.obs;
@@ -113,8 +137,9 @@ class PlayerController extends GetxController
       setVolume(appPrefs.get("volume") ?? 100);
     }
 
-    if ((appPrefs.get("playerUi") ?? 0) == 1) {
-      initGesturePlayerStateAnimationController();
+    // only for android auto
+    if (GetPlatform.isAndroid) {
+      _listenForCustomEvents();
     }
   }
 
@@ -173,7 +198,38 @@ class PlayerController extends GetxController
         _audioHandler.seek(Duration.zero);
         _audioHandler.pause();
       }
+
+      final settings = Get.find<SettingsScreenController>();
+      // Keep the screen awake whenever playback is active and the setting is enabled.
+      final shouldEnable = settings.keepScreenAwake.isTrue && isPlaying;
+      _setWakelock(shouldEnable);
+
+      if (Get.isRegistered<JamService>()) {
+        final jamService = Get.find<JamService>();
+        if (jamService.isInJam.isTrue && jamService.isHost.isTrue) {
+          jamService.pushSongUpdateFromLocalPlayer();
+        }
+      }
     });
+  }
+
+
+  void _setWakelock(bool enable) {
+    if (_wakelockActive == enable) return; // no-op if already in desired state
+
+    try {
+      if (enable) {
+        printINFO("Enabling wakelock");
+        WakelockPlus.enable();
+        _wakelockActive = true;
+      } else {
+        printINFO("Disabling wakelock");
+        WakelockPlus.disable();
+        _wakelockActive = false;
+      }
+    } catch (e) {
+      printERROR(e);
+    }
   }
 
   void _listenForChangesInPosition() {
@@ -228,6 +284,7 @@ class PlayerController extends GetxController
         _newSongFlag = true;
         isCurrentSongBuffered.value = false;
         currentSong.value = mediaItem;
+        Hive.box("AppPrefs").put("recentSongId", mediaItem.id);
         currentSongIndex.value = currentQueue
             .indexWhere((element) => element.id == currentSong.value!.id);
         await _checkFav();
@@ -237,6 +294,8 @@ class PlayerController extends GetxController
         }
         lyrics.value = {"synced": "", "plainLyrics": ""};
         showLyricsflag.value = false;
+        extractedAccentColor.value = null;
+        _lastExtractedSongId = null;
         if (isDesktopLyricsDialogOpen) {
           Navigator.pop(Get.context!);
         }
@@ -245,9 +304,17 @@ class PlayerController extends GetxController
         if (Get.find<SettingsScreenController>().playerUi.value == 1) {
           gesturePlayerVisibleState.value = 2;
         }
+
+        if (Get.isRegistered<JamService>()) {
+          final jamService = Get.find<JamService>();
+          if (jamService.isInJam.isTrue && jamService.isHost.isTrue) {
+            jamService.pushSongUpdateFromLocalPlayer();
+          }
+        }
       }
     });
   }
+
 
   void _listenForPlaylistChange() {
     _audioHandler.queue.listen((queue) {
@@ -277,6 +344,14 @@ class PlayerController extends GetxController
         });
       }
     }
+  }
+
+  void _listenForCustomEvents() {
+    _audioHandler.customEvent.listen((event) {
+      if (event['eventType'] == 'playFromMediaId') {
+        _playViaAndroidAuto(event['songId'], event['libraryId']);
+      }
+    });
   }
 
   ///pushSongToPlaylist method clear previous song queue, plays the tapped song and push related
@@ -410,6 +485,25 @@ class PlayerController extends GetxController
     _audioHandler.addQueueItems(listToEnqueue);
   }
 
+  void _playViaAndroidAuto(String songId, String libraryId) {
+    Hive.openBox(libraryId).then((box) {
+      List<MediaItem> songList = [];
+      final songJson = box.values.toList();
+      int songIndex = 0;
+      for (int i = 0; i < box.length; i++) {
+        final song = MediaItemBuilder.fromJson(songJson[i]);
+        if (song.id == songId) {
+          songIndex = i;
+        }
+        songList.add(song);
+      }
+      playPlayListSong(songList, songIndex);
+      if (libraryId != "SongDownloads") {
+        box.close();
+      }
+    });
+  }
+
   void playNext(MediaItem song) {
     if (currentQueue.isEmpty) {
       enqueueSong(song);
@@ -532,7 +626,22 @@ class PlayerController extends GetxController
 
   void seek(Duration position) {
     _audioHandler.seek(position);
+    if (Get.isRegistered<JamService>()) {
+      final jamService = Get.find<JamService>();
+      if (jamService.isInJam.isTrue && jamService.isHost.isTrue) {
+        jamService.pushSongUpdate(
+          videoId: currentSong.value?.id ?? '',
+          title: currentSong.value?.title ?? '',
+          artist: currentSong.value?.artist ?? '',
+          thumbnail: currentSong.value?.artUri?.toString() ?? '',
+          durationMs: currentSong.value?.duration?.inMilliseconds ?? 0,
+          positionMs: position.inMilliseconds,
+          isPlaying: buttonState.value == PlayButtonState.playing,
+        );
+      }
+    }
   }
+
 
   void seekByIndex(int index) {
     _audioHandler.customAction("playByIndex", {"index": index});
@@ -613,14 +722,14 @@ class PlayerController extends GetxController
         ? box.put(currMediaItem.id, MediaItemBuilder.toJson(currMediaItem))
         : box.delete(currMediaItem.id);
     try {
-      final playlistController = Get.find<PlaylistScreenController>(tag: 
-          const Key("LIBFAV").hashCode.toString());
-        isCurrentSongFav.isFalse
-            ? playlistController.addNRemoveItemsinList(currMediaItem,
-                action: 'add', index: 0)
-            : playlistController.addNRemoveItemsinList(currMediaItem,
-                action: 'remove');
-      
+      final playlistController = Get.find<PlaylistScreenController>(
+          tag: const Key("LIBFAV").hashCode.toString());
+      isCurrentSongFav.isFalse
+          ? playlistController.addNRemoveItemsinList(currMediaItem,
+              action: 'add', index: 0)
+          : playlistController.addNRemoveItemsinList(currMediaItem,
+              action: 'remove');
+
       // ignore: empty_catches
     } catch (e) {}
     isCurrentSongFav.value = !isCurrentSongFav.value;
@@ -706,6 +815,157 @@ class PlayerController extends GetxController
     lyricsMode.value = val!;
   }
 
+  /// Extract the most vibrant/saturated accent color from album art for Modern Player buttons.
+  /// Scores ALL available palette swatches by saturation so the result is deterministic
+  /// (e.g. red wins over blue for Spider-Verse because red is more saturated there).
+  Future<void> extractAlbumColor(ImageProvider imageProvider, String songId) async {
+    if (songId == _lastExtractedSongId) return;
+    try {
+      final generator = await PaletteGenerator.fromImageProvider(
+          ResizeImage(imageProvider, height: 200, width: 200),
+          maximumColorCount: 32);
+
+      // Collect all non-null swatches and score them by HSL saturation
+      final candidates = <PaletteColor>[
+        if (generator.vibrantColor != null) generator.vibrantColor!,
+        if (generator.darkVibrantColor != null) generator.darkVibrantColor!,
+        if (generator.lightVibrantColor != null) generator.lightVibrantColor!,
+        if (generator.mutedColor != null) generator.mutedColor!,
+        if (generator.darkMutedColor != null) generator.darkMutedColor!,
+        if (generator.lightMutedColor != null) generator.lightMutedColor!,
+        if (generator.dominantColor != null) generator.dominantColor!,
+      ];
+
+      if (candidates.isEmpty) return;
+
+      // Pick the swatch with the highest saturation × population weight
+      PaletteColor best = candidates.first;
+      double bestScore = -1;
+      for (final c in candidates) {
+        final hsl = HSLColor.fromColor(c.color);
+        // Weight saturation heavily; add a small population bonus to break ties
+        final score = hsl.saturation * 10 + (c.population / 10000.0).clamp(0.0, 1.0);
+        if (score > bestScore) {
+          bestScore = score;
+          best = c;
+        }
+      }
+
+      // Clamp lightness to a visible mid-range so the button is never too dark/bright
+      final hsl = HSLColor.fromColor(best.color);
+      final richColor = hsl
+          .withSaturation(hsl.saturation.clamp(0.40, 1.0).toDouble())
+          .withLightness(hsl.lightness.clamp(0.32, 0.60).toDouble())
+          .toColor();
+
+      extractedAccentColor.value = richColor;
+      _lastExtractedSongId = songId;
+    } catch (_) {}
+  }
+
+  /// Clears cached lyrics and re-fetches for the current song
+  Future<void> refetchLyrics() async {
+    lyrics.value = {"synced": "", "plainLyrics": ""};
+    isLyricsLoading.value = false;
+    showLyricsflag.value = true;
+    await showLyrics();
+  }
+
+  String _preprocessLrc(String text) {
+    final lines = text.split('\n');
+    final List<MapEntry<Duration, String>> parsedLines = [];
+    final List<String> metadataAndOther = [];
+
+    // Matches one or more timestamps at start: e.g. [00:25.94] or [00:25.940] or [01:25]
+    final timestampRegExp = RegExp(r'^((?:\[\d+:\d+(?:\.\d+)?\])+)(.*)$');
+    // Extracts individual timestamps: [00:25.940]
+    final singleTimestampRegExp = RegExp(r'\[(\d+):(\d+(?:\.\d+)?)\]');
+
+    for (var line in lines) {
+      final trimmed = line.trim();
+      if (trimmed.isEmpty) continue;
+
+      final match = timestampRegExp.firstMatch(trimmed);
+      if (match != null) {
+        final timestampsGroup = match.group(1)!;
+        final lyricsText = match.group(2) ?? '';
+
+        // Find all individual timestamps in this group
+        final matches = singleTimestampRegExp.allMatches(timestampsGroup);
+        if (matches.isEmpty) {
+          metadataAndOther.add(trimmed);
+          continue;
+        }
+        for (final m in matches) {
+          final minutes = int.tryParse(m.group(1) ?? '0') ?? 0;
+          final secondsDouble = double.tryParse(m.group(2) ?? '0.0') ?? 0.0;
+          final seconds = secondsDouble.toInt();
+          final milliseconds = ((secondsDouble - seconds) * 1000).round();
+          
+          final duration = Duration(
+            minutes: minutes,
+            seconds: seconds,
+            milliseconds: milliseconds,
+          );
+
+          // Standardize format to [mm:ss.xxx]
+          final secondsStr = secondsDouble.toStringAsFixed(3).padLeft(6, '0');
+          final formattedTimestamp = '[${minutes.toString().padLeft(2, '0')}:$secondsStr]';
+
+          parsedLines.add(MapEntry(duration, '$formattedTimestamp $lyricsText'));
+        }
+      } else {
+        // It's a metadata line like [ar: The Weeknd] or plain text
+        metadataAndOther.add(trimmed);
+      }
+    }
+
+    // Sort parsed lines chronologically
+    parsedLines.sort((a, b) => a.key.compareTo(b.key));
+
+    // Build the clean LRC
+    final List<String> output = [];
+    output.addAll(metadataAndOther);
+    for (final entry in parsedLines) {
+      output.add(entry.value);
+    }
+
+    return output.join('\n');
+  }
+
+  /// Updates manually pasted lyrics and saves them to local Hive database
+  Future<void> updateSongLyrics(String newText) async {
+    final song = currentSong.value;
+    if (song == null) return;
+
+    final hasTimestamps = RegExp(r'\[\d+:\d+').hasMatch(newText);
+    Map<String, dynamic> lyricsData;
+
+    if (hasTimestamps) {
+      final processedText = _preprocessLrc(newText);
+      final cleanText = processedText
+          .split('\n')
+          .map((line) =>
+              line.replaceAll(RegExp(r'\[\d+:\d+(?:\.\d+)?\]'), '').trim())
+          .join('\n');
+      lyricsData = {
+        'synced': processedText,
+        'plainLyrics': cleanText.isEmpty ? 'NA' : cleanText,
+      };
+      lyrics.value = lyricsData;
+      changeLyricsMode(0);
+    } else {
+      lyricsData = {
+        'synced': '',
+        'plainLyrics': newText.isEmpty ? 'NA' : newText,
+      };
+      lyrics.value = lyricsData;
+      changeLyricsMode(1);
+    }
+
+    await SyncedLyricsService.saveLyrics(song.id, lyricsData);
+  }
+
   void sleepEndOfSong() {
     isSleepTimerActive.value = true;
     isSleepEndOfSongActive.value = true;
@@ -764,6 +1024,12 @@ class PlayerController extends GetxController
     sleepTimer?.cancel();
     if (GetPlatform.isWindows) {
       Get.delete<WindowsAudioService>();
+    }
+    // ensure wakelock disabled when player controller disposed
+    try {
+      _setWakelock(false);
+    } catch (e) {
+      printERROR(e);
     }
     super.dispose();
   }

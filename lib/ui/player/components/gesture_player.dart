@@ -1,15 +1,16 @@
 import 'dart:ui';
 
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
+import 'package:squiggly_slider/slider.dart';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:harmonymusic/ui/player/components/backgroud_image.dart';
-import 'package:ionicons/ionicons.dart';
+
 import 'package:widget_marquee/widget_marquee.dart';
 
 import '../../widgets/songinfo_bottom_sheet.dart';
 import '../../utils/theme_controller.dart';
+import '../../screens/Settings/settings_screen_controller.dart';
 import '../player_controller.dart';
 
 class GesturePlayer extends StatelessWidget {
@@ -208,7 +209,7 @@ class GesturePlayer extends StatelessWidget {
                                           playerController.toggleShuffleMode,
                                       icon: Obx(
                                         () => Icon(
-                                          Ionicons.shuffle,
+                                          Icons.shuffle,
                                           color: playerController
                                                   .isShuffleModeEnabled.value
                                               ? Theme.of(context)
@@ -234,26 +235,62 @@ class GesturePlayer extends StatelessWidget {
                         height: 5,
                       ),
                       GetX<PlayerController>(builder: (controller) {
-                        return ProgressBar(
-                          thumbRadius: 6,
-                          baseBarColor:
-                              Theme.of(context).sliderTheme.inactiveTrackColor,
-                          bufferedBarColor:
-                              Theme.of(context).sliderTheme.valueIndicatorColor,
-                          progressBarColor:
-                              Theme.of(context).sliderTheme.activeTrackColor,
-                          thumbColor: Theme.of(context).sliderTheme.thumbColor,
-                          timeLabelTextStyle: Theme.of(context)
-                              .textTheme
-                              .titleSmall!
-                              .copyWith(
-                                  color: Theme.of(context)
-                                      .primaryColor
-                                      .complementaryColor),
-                          progress: controller.progressBarStatus.value.current,
-                          total: controller.progressBarStatus.value.total,
-                          buffered: controller.progressBarStatus.value.buffered,
-                          onSeek: controller.seek,
+                        final isPlaying = controller.buttonState.value == PlayButtonState.playing;
+                        final maxMs = controller.progressBarStatus.value.total.inMilliseconds.toDouble();
+                        final currentMs = controller.progressBarStatus.value.current.inMilliseconds.toDouble();
+                        final maxVal = maxMs > 0 ? maxMs : 1.0;
+                        final currentVal = currentMs.clamp(0.0, maxVal);
+
+                        return Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                child: Obx(() {
+                                  final sc = Get.find<SettingsScreenController>();
+                                  final wavyEnabled = sc.squigglySliderEnabled.value;
+                                  final amplitude = sc.squigglyAmplitude.value;
+                                  final wavelength = sc.squigglyWavelength.value;
+                                  final speed = sc.squigglySpeed.value;
+                                  return SquigglySlider(
+                                    key: ValueKey('${wavyEnabled}_${isPlaying}_${amplitude}_${wavelength}_${speed}'),
+                                    value: currentVal,
+                                    min: 0.0,
+                                    max: maxVal,
+                                    activeColor: Theme.of(context).sliderTheme.activeTrackColor,
+                                    inactiveColor: Theme.of(context).sliderTheme.inactiveTrackColor,
+                                    thumbColor: Theme.of(context).sliderTheme.thumbColor,
+                                    squiggleAmplitude: (wavyEnabled && isPlaying)
+                                        ? amplitude * (currentVal / (maxVal * 0.05).clamp(1000.0, 5000.0)).clamp(0.0, 1.0)
+                                        : 0.0,
+                                    squiggleWavelength: wavelength,
+                                    squiggleSpeed: (wavyEnabled && isPlaying) ? speed : 0.0,
+                                    onChanged: (value) {
+                                      controller.seek(Duration(milliseconds: value.toInt()));
+                                    },
+                                  );
+                                }),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 22.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    _formatDuration(controller.progressBarStatus.value.current),
+                                    style: Theme.of(context).textTheme.titleSmall!.copyWith(
+                                        color: Theme.of(context).primaryColor.complementaryColor,
+                                        fontSize: 11),
+                                  ),
+                                  Text(
+                                    _formatDuration(controller.progressBarStatus.value.total),
+                                    style: Theme.of(context).textTheme.titleSmall!.copyWith(
+                                        color: Theme.of(context).primaryColor.complementaryColor,
+                                        fontSize: 11),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         );
                       }),
                     ]),
@@ -275,5 +312,12 @@ class GesturePlayer extends StatelessWidget {
         )
       ],
     );
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds.remainder(60);
+    return "$minutes:${twoDigits(seconds)}";
   }
 }

@@ -17,6 +17,7 @@ import '/services/music_service.dart';
 import '/ui/player/player_controller.dart';
 import '../Home/home_screen_controller.dart';
 import '/ui/utils/theme_controller.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 class SettingsScreenController extends GetxController {
   late String _supportDir;
@@ -39,14 +40,18 @@ class SettingsScreenController extends GetxController {
   final downloadLocationPath = "".obs;
   final exportLocationPath = "".obs;
   final downloadingFormat = "".obs;
-  final hideDloc = true.obs;
   final autoDownloadFavoriteSongEnabled = false.obs;
   final isTransitionAnimationDisabled = false.obs;
   final isBottomNavBarEnabled = false.obs;
   final backgroundPlayEnabled = true.obs;
+  final keepScreenAwake = false.obs;
   final restorePlaybackSession = false.obs;
   final cacheHomeScreenData = true.obs;
-  final currentVersion = "V1.11.2";
+  final squigglySliderEnabled = true.obs;
+  final squigglyAmplitude = 2.0.obs;
+  final squigglyWavelength = 10.0.obs;
+  final squigglySpeed = 0.05.obs;
+  final currentVersion = "V1.12.2";
 
   @override
   void onInit() {
@@ -77,7 +82,12 @@ class SettingsScreenController extends GetxController {
 
   Future<void> _setInitValue() async {
     final isDesktop = GetPlatform.isDesktop;
-    currentAppLanguageCode.value = setBox.get('currentAppLanguageCode') ?? "en";
+    final appLang = setBox.get('currentAppLanguageCode') ?? "en";
+    currentAppLanguageCode.value = appLang == "zh_Hant"
+        ? "zh-TW"
+        : appLang == "zh_Hans"
+            ? "zh-CN"
+            : appLang;
     isBottomNavBarEnabled.value =
         isDesktop ? false : (setBox.get("isBottomNavBarEnabled") ?? true);
     noOfHomeScreenContent.value = setBox.get("noOfHomeScreenContent") ?? 5;
@@ -94,10 +104,16 @@ class SettingsScreenController extends GetxController {
     restorePlaybackSession.value =
         setBox.get("restrorePlaybackSession") ?? false;
     cacheHomeScreenData.value = setBox.get("cacheHomeScreenData") ?? true;
+    squigglySliderEnabled.value = setBox.get("squigglySliderEnabled") ?? true;
+    squigglyAmplitude.value = (setBox.get("squigglyAmplitude") ?? 2.0).toDouble();
+    squigglyWavelength.value = (setBox.get("squigglyWavelength") ?? 10.0).toDouble();
+    squigglySpeed.value = (setBox.get("squigglySpeed") ?? 0.05).toDouble();
     streamingQuality.value =
         AudioQuality.values[setBox.get('streamingQuality')];
     playerUi.value = isDesktop ? 0 : (setBox.get('playerUi') ?? 0);
     backgroundPlayEnabled.value = setBox.get("backgroundPlayEnabled") ?? true;
+    keepScreenAwake.value =
+        setBox.get("keepScreenAwake") ?? GetPlatform.isDesktop ? true : false;
     final downloadPath =
         setBox.get('downloadLocationPath') ?? await _createInAppSongDownDir();
     downloadLocationPath.value =
@@ -142,13 +158,28 @@ class SettingsScreenController extends GetxController {
   }
 
   void setPlayerUi(dynamic val) {
-    final playerCon = Get.find<PlayerController>();
     setBox.put("playerUi", val);
-    if (val == 1 && playerCon.gesturePlayerStateAnimationController == null) {
-      playerCon.initGesturePlayerStateAnimationController();
-    }
-
     playerUi.value = val;
+  }
+
+  void toggleSquigglySlider(bool val) {
+    setBox.put("squigglySliderEnabled", val);
+    squigglySliderEnabled.value = val;
+  }
+
+  void setSquigglyAmplitude(double val) {
+    setBox.put("squigglyAmplitude", val);
+    squigglyAmplitude.value = val;
+  }
+
+  void setSquigglyWavelength(double val) {
+    setBox.put("squigglyWavelength", val);
+    squigglyWavelength.value = val;
+  }
+
+  void setSquigglySpeed(double val) {
+    setBox.put("squigglySpeed", val);
+    squigglySpeed.value = val;
   }
 
   void enableBottomNavBar(bool val) {
@@ -206,10 +237,6 @@ class SettingsScreenController extends GetxController {
 
     setBox.put("downloadLocationPath", pickedFolderPath);
     downloadLocationPath.value = pickedFolderPath;
-  }
-
-  void showDownLoc() {
-    hideDloc.value = false;
   }
 
   void disableTransitionAnimation(bool val) {
@@ -291,6 +318,25 @@ class SettingsScreenController extends GetxController {
   void toggleBackgroundPlay(bool val) {
     setBox.put('backgroundPlayEnabled', val);
     backgroundPlayEnabled.value = val;
+  }
+
+  void toggleKeepScreenAwake(bool val) {
+    setBox.put('keepScreenAwake', val);
+    keepScreenAwake.value = val;
+    try {
+        if (val) {
+          // enable wakelock immediately if music is playing
+          if (Get.find<PlayerController>().buttonState.value ==
+              PlayButtonState.playing) {
+            WakelockPlus.enable();
+          }
+        } else {
+          WakelockPlus.disable();
+        }
+     
+    } catch (e) {
+      // ignore if player/controller not available
+    }
   }
 
   Future<void> enableIgnoringBatteryOptimizations() async {

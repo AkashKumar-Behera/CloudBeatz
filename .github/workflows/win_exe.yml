@@ -12,6 +12,14 @@ jobs:
         with:
           channel: 'stable'
           flutter-version: '3.24.2'
+      
+      - name: Install InnoSetup if missing
+        run: |
+          if (-not (Get-Command "innosetup" -ErrorAction SilentlyContinue)) {
+            choco install innosetup -y
+          } else {
+            Write-Output "InnoSetup already installed."
+          }
 
       - name: Update lang data
         working-directory: "${{ github.workspace }}"

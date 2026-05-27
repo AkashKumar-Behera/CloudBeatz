@@ -93,5 +93,13 @@
     "libAlbums": "Gyűjtemény albumai",
     "libArtists": "Gyűjtemény előadói",
     "appInfo": "Alkalmazás információ",
-    "backFilesFound": "adatbázis található"
+    "backFilesFound": "adatbázis található",
+    "album": "Album",
+    "items": "Tárgyak",
+    "reArrangeSongs": "Zenék átrendezése",
+    "selectSongs": "Számok kiválástása",
+    "selectAll": "Összes kiválasztása",
+    "upNext": "Következő",
+    "keepScreenOnWhilePlaying": "A képernyő bekapcsolva tartása lejátszás közben",
+    "keepScreenOnWhilePlayingDes": "Ha engedélyezve van, a készülék képernyője lejátszás közben bekapcsolva marad"
 }

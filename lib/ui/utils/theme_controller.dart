@@ -5,11 +5,15 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive/hive.dart';
 import 'package:palette_generator/palette_generator.dart';
+import '/utils/helper.dart';
 
 class ThemeController extends GetxController {
   final primaryColor = Colors.deepPurple[400].obs;
   final textColor = Colors.white24.obs;
   final themedata = Rxn<ThemeData>();
+
+  /// The method channel for setting the title bar color on Windows.
+  final platform = const MethodChannel('win_titlebar_color');
   String? currentSongId;
   late Brightness systemBrightness;
 
@@ -53,6 +57,7 @@ class ThemeController extends GetxController {
               : null,
           value);
     }
+    setWindowsTitleBarColor(themedata.value!.scaffoldBackgroundColor);
   }
 
   void setTheme(ImageProvider imageProvider, String songId) async {
@@ -65,19 +70,21 @@ class ThemeController extends GetxController {
         generator.darkVibrantColor ??
         generator.lightMutedColor ??
         generator.lightVibrantColor;
-    primaryColor.value = paletteColor!.color;
-    textColor.value = paletteColor.bodyTextColor;
-    // printINFO(paletteColor.color.computeLuminance().toString());0.11 ref
-    if (paletteColor.color.computeLuminance() > 0.10) {
-      primaryColor.value = paletteColor.color.withLightness(0.10);
-      textColor.value = Colors.white54;
-    }
+
+    final extractedColor = paletteColor!.color;
+    final hsl = HSLColor.fromColor(extractedColor);
+    final double targetSaturation = hsl.saturation.clamp(0.20, 0.40);
+    final double targetLightness = hsl.lightness.clamp(0.09, 0.14);
+    primaryColor.value = HSLColor.fromAHSL(1.0, hsl.hue, targetSaturation, targetLightness).toColor();
+    textColor.value = Colors.white70;
+
     final primarySwatch = _createMaterialColor(primaryColor.value!);
     themedata.value = _createThemeData(primarySwatch, ThemeType.dynamic,
         textColor: textColor.value,
         titleColorSwatch: _createMaterialColor(textColor.value));
     currentSongId = songId;
     Hive.box('appPrefs').put("themePrimaryColor", (primaryColor.value!).value);
+    setWindowsTitleBarColor(themedata.value!.scaffoldBackgroundColor);
   }
 
   ThemeData _createThemeData(MaterialColor? primarySwatch, ThemeType themeType,
@@ -297,7 +304,7 @@ class ThemeController extends GetxController {
               cursorColor: Colors.grey[400],
               selectionColor: Colors.grey[400],
               selectionHandleColor: Colors.grey[400]),
-          dialogTheme: DialogTheme(backgroundColor: Colors.grey[200]),
+          dialogTheme: DialogThemeData(backgroundColor: Colors.grey[200]),
           inputDecorationTheme: const InputDecorationTheme(
               focusColor: Colors.black,
               focusedBorder: UnderlineInputBorder(
@@ -325,6 +332,21 @@ class ThemeController extends GetxController {
       );
     }
     return MaterialColor(color.value, swatch);
+  }
+
+  Future<void> setWindowsTitleBarColor(Color color) async {
+    if (!GetPlatform.isWindows) return;
+    try {
+      Future.delayed(
+          const Duration(milliseconds: 350),
+          () async => await platform.invokeMethod('setTitleBarColor', {
+                'r': color.red,
+                'g': color.green,
+                'b': color.blue,
+              }));
+    } on PlatformException catch (e) {
+      printERROR("Failed to set title bar color: ${e.message}");
+    }
   }
 }
 
