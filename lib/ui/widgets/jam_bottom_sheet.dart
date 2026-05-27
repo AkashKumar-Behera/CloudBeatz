@@ -90,10 +90,12 @@ class JamBottomSheetController extends GetxController {
     final code = jamService.activeSession.value?.code ?? '';
     Clipboard.setData(ClipboardData(text: link));
     Get.snackbar("Copied to Clipboard", "Jam deep link copied! Share with friends.");
-    Share.share(
-      "Join my collaborative music Jam session on CloudBeatz! 🎧\n\nCode: $code\nLink: $link",
-      subject: "Join my CloudBeatz Jam!",
-    );
+    if (!GetPlatform.isDesktop) {
+      Share.share(
+        "Join my collaborative music Jam session on CloudBeatz! 🎧\n\nCode: $code\nLink: $link",
+        subject: "Join my CloudBeatz Jam!",
+      );
+    }
   }
 }
 

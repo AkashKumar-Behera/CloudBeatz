@@ -179,64 +179,81 @@ class ThemeController extends GetxController {
             systemStatusBarContrastEnforced: false,
             systemNavigationBarContrastEnforced: true),
       );
+      // Modern dark palette — Material Design dark surface hierarchy
+      const Color surfaceDim = Color(0xFF121212);   // deepest background
+      const Color surface = Color(0xFF1E1E1E);       // card/component bg
+      const Color surfaceVariant = Color(0xFF2A2A2A); // slightly elevated
+      const Color onSurface = Color(0xFFE0E0E0);     // primary text
+      const Color onSurfaceMuted = Color(0xFF9E9E9E); // secondary text
+      const Color accentPurple = Color(0xFF7C5CBF);   // subtle accent for active states
+
       final baseTheme = ThemeData(
           useMaterial3: false,
           brightness: Brightness.dark,
-          canvasColor: Colors.black,
-          primaryColor: Colors.black,
-          primaryColorDark: Colors.black,
-          primaryColorLight: Colors.grey[850],
-          colorScheme: ColorScheme.fromSwatch(
-              accentColor: Colors.grey[700], brightness: Brightness.dark),
-          progressIndicatorTheme: ProgressIndicatorThemeData(
-              color: Colors.grey[700], linearTrackColor: Colors.white),
-          textTheme: const TextTheme(
-              titleLarge: TextStyle(
+          canvasColor: surface,
+          scaffoldBackgroundColor: surfaceDim,
+          primaryColor: surfaceDim,
+          primaryColorDark: surfaceDim,
+          primaryColorLight: surfaceVariant,
+          cardColor: surface,
+          colorScheme: ColorScheme.dark(
+            primary: accentPurple,
+            secondary: accentPurple,
+            surface: surface,
+            onSurface: onSurface,
+          ),
+          progressIndicatorTheme: const ProgressIndicatorThemeData(
+              color: accentPurple, linearTrackColor: surfaceVariant),
+          textTheme: TextTheme(
+              titleLarge: const TextStyle(
                 fontSize: 23,
                 fontWeight: FontWeight.bold,
+                color: onSurface,
               ),
-              titleMedium: TextStyle(
+              titleMedium: const TextStyle(
                 fontWeight: FontWeight.bold,
+                color: onSurface,
               ),
-              titleSmall: TextStyle(),
-              labelMedium: TextStyle(
+              titleSmall: const TextStyle(color: onSurfaceMuted),
+              labelMedium: const TextStyle(
                 fontWeight: FontWeight.w800,
                 fontSize: 23,
+                color: onSurface,
               ),
-              labelSmall: TextStyle(
-                  fontSize: 15, letterSpacing: 0, fontWeight: FontWeight.bold),
-              bodyMedium: TextStyle(color: Colors.grey)),
+              labelSmall: const TextStyle(
+                  fontSize: 15, letterSpacing: 0, fontWeight: FontWeight.bold, color: onSurface),
+              bodyMedium: const TextStyle(color: onSurfaceMuted),
+              bodySmall: const TextStyle(color: onSurfaceMuted)),
+          bottomSheetTheme: const BottomSheetThemeData(
+              backgroundColor: surface,
+              modalBarrierColor: Colors.black54),
           navigationRailTheme: const NavigationRailThemeData(
-              backgroundColor: Colors.black,
+              backgroundColor: surfaceDim,
               selectedIconTheme: IconThemeData(
-                color: Colors.white,
+                color: accentPurple,
               ),
-              unselectedIconTheme: IconThemeData(color: Colors.white38),
+              unselectedIconTheme: IconThemeData(color: onSurfaceMuted),
               selectedLabelTextStyle: TextStyle(
-                  color: Colors.white,
+                  color: accentPurple,
                   fontWeight: FontWeight.bold,
                   fontSize: 15),
               unselectedLabelTextStyle: TextStyle(
-                  color: Colors.white38, fontWeight: FontWeight.bold)),
-          bottomSheetTheme: const BottomSheetThemeData(
-              backgroundColor: Colors.black, modalBarrierColor: Colors.black),
+                  color: onSurfaceMuted, fontWeight: FontWeight.bold)),
           sliderTheme: const SliderThemeData(
-            //base bar color
-            inactiveTrackColor: Colors.white30,
-            //buffered progress
-            activeTrackColor: Colors.white,
-            //progress bar color
-            valueIndicatorColor: Colors.black38,
-            thumbColor: Colors.white,
+            inactiveTrackColor: surfaceVariant,
+            activeTrackColor: accentPurple,
+            valueIndicatorColor: surfaceVariant,
+            thumbColor: accentPurple,
           ),
-          textSelectionTheme: TextSelectionThemeData(
-              cursorColor: Colors.grey[700],
-              selectionColor: Colors.grey[700],
-              selectionHandleColor: Colors.grey[700]),
+          textSelectionTheme: const TextSelectionThemeData(
+              cursorColor: accentPurple,
+              selectionColor: Color(0x557C5CBF),
+              selectionHandleColor: accentPurple),
           inputDecorationTheme: const InputDecorationTheme(
-              focusColor: Colors.white,
+              focusColor: accentPurple,
               focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.white))));
+                  borderSide: BorderSide(color: accentPurple))),
+          dialogTheme: const DialogThemeData(backgroundColor: surface));
       return baseTheme.copyWith(
           textTheme: GoogleFonts.interTextTheme(baseTheme.textTheme));
     } else {

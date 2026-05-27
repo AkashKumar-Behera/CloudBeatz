@@ -383,10 +383,28 @@ class JamService extends GetxService {
   }
 
   void showJamBottomSheet() {
-    Get.bottomSheet(
-      const JamBottomSheet(),
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-    );
+    if (GetPlatform.isDesktop) {
+      // On desktop, show as a centered dialog instead of a bottom sheet
+      Get.dialog(
+        Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 80, vertical: 40),
+          child: SizedBox(
+            width: 520,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: const JamBottomSheet(),
+            ),
+          ),
+        ),
+        barrierDismissible: true,
+      ).whenComplete(() => Get.delete<JamBottomSheetController>(force: true));
+    } else {
+      Get.bottomSheet(
+        const JamBottomSheet(),
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+      ).whenComplete(() => Get.delete<JamBottomSheetController>(force: true));
+    }
   }
 }

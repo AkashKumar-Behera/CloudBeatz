@@ -85,32 +85,47 @@ class StandardPlayer extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(left: 25, right: 25),
           child: (context.isLandscape)
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: size.width * .45,
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 90.0, top: 40),
-                        child: Center(
-                          child: AlbumArtNLyrics(
-                            playerArtImageSize: size.width * .29,
+              ? Obx(() {
+                  final showLyrics = playerController.showLyricsflag.value;
+                  // On desktop/landscape, lyrics mode takes priority over the side-by-side layout
+                  if (showLyrics) {
+                    return AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 280),
+                      transitionBuilder: (child, animation) =>
+                          FadeTransition(opacity: animation, child: child),
+                      child: _StandardLyricsLayout(
+                        key: const ValueKey('std_lyrics'),
+                        playerController: playerController,
+                      ),
+                    );
+                  }
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: size.width * .45,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 90.0, top: 40),
+                          child: Center(
+                            child: AlbumArtNLyrics(
+                              playerArtImageSize: size.width * .29,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    SizedBox(
-                      width: size.width * .48,
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                            left: 10.0,
-                            right: 10,
-                            bottom: Get.mediaQuery.padding.bottom),
-                        child: const PlayerControlWidget(),
+                      SizedBox(
+                        width: size.width * .48,
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                              left: 10.0,
+                              right: 10,
+                              bottom: Get.mediaQuery.padding.bottom),
+                          child: const PlayerControlWidget(),
+                        ),
                       ),
-                    ),
-                  ],
-                )
+                    ],
+                  );
+                })
               : Obx(() {
                   final showLyrics = playerController.showLyricsflag.value;
                   return AnimatedSwitcher(
