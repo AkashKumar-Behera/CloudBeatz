@@ -1,7 +1,8 @@
-// This is auto generated file
+// This is auto generated file 
 // Do not modify this file manually
 
 import 'package:get/get.dart';
+class Languages extends Translations {
 
 @override
 Map<String, Map<String, String>> get keys => {
