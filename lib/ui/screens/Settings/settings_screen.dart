@@ -145,31 +145,29 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (!isDesktop)
-                    ListTile(
-                      contentPadding: const EdgeInsets.only(left: 5, right: 10),
-                      title: Text("playerUi".tr),
-                      subtitle: Text("playerUiDes".tr,
-                          style: Theme.of(context).textTheme.bodyMedium),
-                      trailing: Obx(
-                        () => DropdownButton(
-                          dropdownColor: Theme.of(context).cardColor,
-                          underline: const SizedBox.shrink(),
-                          value: settingsController.playerUi.value,
-                          items: [
-                            DropdownMenuItem(
-                                value: 0, child: Text("standard".tr)),
-                            DropdownMenuItem(
-                              value: 1,
-                              child: Text("modern".tr),
-                            ),
-                          ],
-                          onChanged: settingsController.setPlayerUi,
-                        ),
+                  ListTile(
+                    contentPadding: const EdgeInsets.only(left: 5, right: 10),
+                    title: Text("playerUi".tr),
+                    subtitle: Text("playerUiDes".tr,
+                        style: Theme.of(context).textTheme.bodyMedium),
+                    trailing: Obx(
+                      () => DropdownButton(
+                        dropdownColor: Theme.of(context).cardColor,
+                        underline: const SizedBox.shrink(),
+                        value: settingsController.playerUi.value,
+                        items: [
+                          DropdownMenuItem(
+                              value: 0, child: Text("standard".tr)),
+                          DropdownMenuItem(
+                            value: 1,
+                            child: Text("modern".tr),
+                          ),
+                        ],
+                        onChanged: settingsController.setPlayerUi,
                       ),
                     ),
-                  if (!isDesktop)
-                    Obx(() => settingsController.playerUi.value >= 0
+                  ),
+                  Obx(() => settingsController.playerUi.value >= 0
                         ? Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [

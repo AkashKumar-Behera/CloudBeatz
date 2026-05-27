@@ -402,7 +402,8 @@ class JamBottomSheet extends StatelessWidget {
                   keyboardType: TextInputType.number,
                   maxLength: 4,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 16),
+                  autofocus: true,
+                  style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, letterSpacing: 18),
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: InputDecoration(
                     counterText: "",
@@ -414,14 +415,40 @@ class JamBottomSheet extends StatelessWidget {
                     filled: true,
                     fillColor: Theme.of(context).cardColor,
                   ),
-                  onChanged: (val) {
-                    if (val.length == 4) {
-                      controller.joinSession(val);
-                    }
+                  onSubmitted: (val) {
+                    // Enter key triggers connect
+                    controller.joinSession(val);
                   },
                 ),
               ),
             ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          width: double.infinity,
+          height: 52,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Theme.of(context).colorScheme.primary,
+                Theme.of(context).colorScheme.primary.withAlpha(180),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: ElevatedButton.icon(
+            onPressed: () => controller.joinSession(controller.codeController.text),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            icon: const Icon(Icons.link_rounded, color: Colors.white),
+            label: const Text(
+              "Connect",
+              style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+            ),
           ),
         ),
         const SizedBox(height: 32),

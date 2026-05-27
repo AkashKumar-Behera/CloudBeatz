@@ -405,26 +405,35 @@ class MiniPlayer extends StatelessWidget {
                                     IconButton(
                                         iconSize: 20,
                                         onPressed: () {
-                                          playerController.showLyrics();
-                                          showDialog(
-                                                  builder: (context) =>
-                                                      const LyricsDialog(),
-                                                  context: context)
-                                              .whenComplete(() {
+                                          if (GetPlatform.isDesktop) {
+                                            // On desktop, toggle lyrics inline in the player panel
+                                            // (no popup dialog — the standard player landscape layout handles it)
+                                            playerController.showLyrics();
+                                          } else {
+                                            playerController.showLyrics();
+                                            showDialog(
+                                                    builder: (context) =>
+                                                        const LyricsDialog(),
+                                                    context: context)
+                                                .whenComplete(() {
+                                              playerController
+                                                      .isDesktopLyricsDialogOpen =
+                                                  false;
+                                              playerController
+                                                  .showLyricsflag.value = false;
+                                            });
                                             playerController
-                                                    .isDesktopLyricsDialogOpen =
-                                                false;
-                                            playerController
-                                                .showLyricsflag.value = false;
-                                          });
-                                          playerController
-                                              .isDesktopLyricsDialogOpen = true;
+                                                .isDesktopLyricsDialogOpen = true;
+                                          }
                                         },
-                                        icon: Icon(Icons.lyrics_outlined,
-                                            color: Theme.of(context)
-                                                .textTheme
-                                                .titleLarge!
-                                                .color)),
+                                        icon: Obx(() => Icon(
+                                            Icons.lyrics_outlined,
+                                            color: GetPlatform.isDesktop && playerController.showLyricsflag.value
+                                                ? Theme.of(context).colorScheme.primary
+                                                : Theme.of(context)
+                                                    .textTheme
+                                                    .titleLarge!
+                                                    .color))),
                                   ],
                                 ),
                               if (isWideScreen && !bottomNavEnabled)

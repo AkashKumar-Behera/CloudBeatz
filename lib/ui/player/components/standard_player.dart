@@ -334,7 +334,7 @@ class _StdLyricsHeader extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Minimize button (close player panel)
+          // Minimize button: on desktop toggle lyrics off, on mobile close panel
           IconButton(
             icon: Icon(
               Icons.keyboard_arrow_down,
@@ -343,7 +343,9 @@ class _StdLyricsHeader extends StatelessWidget {
             ),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-            onPressed: pc.playerPanelController.close,
+            onPressed: GetPlatform.isDesktop
+                ? () => pc.showLyricsflag.value = false
+                : pc.playerPanelController.close,
           ),
 
           const SizedBox(width: 6),
