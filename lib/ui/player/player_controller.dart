@@ -354,10 +354,57 @@ class PlayerController extends GetxController
     });
   }
 
+  bool checkJamGuestRestriction() {
+    if (Get.isRegistered<JamService>()) {
+      final jamService = Get.find<JamService>();
+      if (jamService.isInJam.value && !jamService.isHost.value) {
+        playerPanelController.open();
+        Get.dialog(
+          Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    "You are in Jam mode! 🎧",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "You are in guest mode, so you cannot change or skip songs. Please leave the Jam session to unlock these features.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, height: 1.5),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: () => Get.back(),
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text("Got it"),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        return true;
+      }
+    }
+    return false;
+  }
+
   ///pushSongToPlaylist method clear previous song queue, plays the tapped song and push related
   ///songs into Queue
   Future<void> pushSongToQueue(MediaItem? mediaItem,
       {String? playlistid, bool radio = false}) async {
+    if (checkJamGuestRestriction()) return;
     /// update playing from value
     playinfrom.value = PlaylingFrom(
         type: PlaylingFromType.SELECTION,
@@ -417,6 +464,7 @@ class PlayerController extends GetxController
 
   Future<void> playPlayListSong(List<MediaItem> mediaItems, int index,
       {PlaylingFrom? playfrom}) async {
+    if (checkJamGuestRestriction()) return;
     isRadioModeOn = false;
     //open player pane,set current song and push first song into playing list,
 
