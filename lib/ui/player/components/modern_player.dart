@@ -42,62 +42,53 @@ class ModernPlayer extends StatelessWidget {
     final bottomPad = Get.mediaQuery.padding.bottom;
     final double artSize = (size.width - 48).clamp(0.0, 360.0);
 
-    return Stack(
-      children: [
-        // ── Blurred ambient background ─────────────────────────────────────
-        BackgroudImage(
-          key: Key("${pc.currentSong.value?.id}_modern_bg"),
-          cacheHeight: 200,
-        ),
-        BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 42.0, sigmaY: 42.0),
-          child: Container(
-            color: Theme.of(context).primaryColor.withAlpha(200),
-          ),
-        ),
+    return Obx(() {
+      final accentColor = pc.extractedAccentColor.value ?? Theme.of(context).primaryColor;
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
 
-        // ── Bottom gradient anchor ─────────────────────────────────────────
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: Container(
-            height: size.height * 0.50,
+      return Stack(
+        children: [
+          // ── Hardware-accelerated dynamic accented gradient background ──────
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 400),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Theme.of(context).primaryColor,
-                  Colors.transparent,
+                  accentColor.withOpacity(isDark ? 0.30 : 0.45),
+                  backgroundColor,
                 ],
-                begin: Alignment.bottomCenter,
-                end: Alignment.topCenter,
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
             ),
           ),
-        ),
 
-        // ── Main column ────────────────────────────────────────────────────
-        SafeArea(
-          bottom: false,
-          child: Obx(() {
-            final showLyrics = pc.showLyricsflag.value;
-            return AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              transitionBuilder: (Widget child, Animation<double> animation) {
-                return FadeTransition(opacity: animation, child: child);
-              },
-              child: showLyrics
-                  ? _buildLyricsLayout(context, pc, sc, bottomPad)
-                  : _buildNormalLayout(context, pc, sc, bottomPad, artSize),
-            );
+          // ── Main column ────────────────────────────────────────────────────
+          SafeArea(
+            bottom: false,
+            child: Obx(() {
+              final showLyrics = pc.showLyricsflag.value;
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+                child: showLyrics
+                    ? _buildLyricsLayout(context, pc, sc, bottomPad)
+                    : _buildNormalLayout(context, pc, sc, bottomPad, artSize),
+              );
+            }),
+          ),
+
+          // ── Jam Reaction Overlay ───────────────────────────────────────────
+          Obx(() {
+            final jamService = Get.find<JamService>();
+            return jamService.isInJam.isTrue ? const JamReactionOverlay() : const SizedBox.shrink();
           }),
-        ),
-
-        // ── Jam Reaction Overlay ───────────────────────────────────────────
-        Obx(() {
-          final jamService = Get.find<JamService>();
-          return jamService.isInJam.isTrue ? const JamReactionOverlay() : const SizedBox.shrink();
-        }),
-      ],
-    );
+        ],
+      );
+    });
   }
 
 
@@ -920,35 +911,45 @@ class _PillPlayPauseButtonState extends State<_PillPlayPauseButton>
           ? Colors.black87
           : Colors.white;
 
-      return GestureDetector(
-        onTap: () => isPlaying ? controller.pause() : controller.play(),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          height: 58,
-          decoration: BoxDecoration(
-            color: accentColor,
-            // Animate: full pill when paused, rounded rect when playing
-            borderRadius: BorderRadius.circular(isPlaying ? 14 : 32),
-            boxShadow: [
-              BoxShadow(
-                color: accentColor.withAlpha(102),
-                blurRadius: 22,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Center(
-            child: isLoading
-                ? const LoadingIndicator(dimension: 24)
-                : AnimatedIcon(
-                    icon: AnimatedIcons.play_pause,
-                    progress: _anim,
-                    color: onAccent,
-                    size: 32,
+      final JamService jamService = Get.find<JamService>();
+
+      return Obx(() {
+        final bool isGuest = jamService.isInJam.value && !jamService.isHost.value;
+        final bool allowPlayPause = jamService.activeSession.value?.config.allowGuestPlayPause ?? false;
+
+        return AbsorbPointer(
+          absorbing: isGuest && !allowPlayPause,
+          child: GestureDetector(
+            onTap: () => isPlaying ? controller.pause() : controller.play(),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              height: 58,
+              decoration: BoxDecoration(
+                color: (isGuest && !allowPlayPause) ? Colors.grey.withAlpha(80) : accentColor,
+                // Animate: full pill when paused, rounded rect when playing
+                borderRadius: BorderRadius.circular(isPlaying ? 14 : 32),
+                boxShadow: (isGuest && !allowPlayPause) ? null : [
+                  BoxShadow(
+                    color: accentColor.withAlpha(102),
+                    blurRadius: 22,
+                    offset: const Offset(0, 8),
                   ),
+                ],
+              ),
+              child: Center(
+                child: isLoading
+                    ? const LoadingIndicator(dimension: 24)
+                    : AnimatedIcon(
+                        icon: AnimatedIcons.play_pause,
+                        progress: _anim,
+                        color: (isGuest && !allowPlayPause) ? Colors.white24 : onAccent,
+                        size: 32,
+                      ),
+              ),
+            ),
           ),
-        ),
-      );
+        );
+      });
     });
   }
 }
@@ -1040,71 +1041,77 @@ class _SquigglyProgressBarState extends State<_SquigglyProgressBar> {
 
         final displayVal = (_dragValue ?? curVal).clamp(0.0, maxVal);
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 3.0,
-                thumbShape:
-                    const RectangularSliderThumbShape(width: 4.0, height: 14.0, radius: 2.0),
-                overlayShape:
-                    const RoundSliderOverlayShape(overlayRadius: 14),
-                activeTrackColor: Colors.white,
-                inactiveTrackColor: Colors.white.withAlpha(35),
-                thumbColor: Colors.white,
+        final JamService jamService = Get.find<JamService>();
+        final bool isGuest = jamService.isInJam.value && !jamService.isHost.value;
+
+        return AbsorbPointer(
+          absorbing: isGuest,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 3.0,
+                  thumbShape:
+                      const RectangularSliderThumbShape(width: 4.0, height: 14.0, radius: 2.0),
+                  overlayShape:
+                      const RoundSliderOverlayShape(overlayRadius: 14),
+                  activeTrackColor: isGuest ? Colors.white.withAlpha(50) : Colors.white,
+                  inactiveTrackColor: Colors.white.withAlpha(35),
+                  thumbColor: isGuest ? Colors.transparent : Colors.white,
+                ),
+                child: SquigglySlider(
+                  key: ValueKey('${wavyEnabled}_${playing}_${amplitude}_${wavelength}_${speed}'),
+                  value: displayVal,
+                  min: 0.0,
+                  max: maxVal,
+                  activeColor: isGuest ? Colors.white.withAlpha(50) : Colors.white,
+                  inactiveColor: Colors.white.withAlpha(35),
+                  thumbColor: isGuest ? Colors.transparent : Colors.white,
+                  squiggleAmplitude: (wavyEnabled && playing && _dragValue == null)
+                      ? amplitude * (displayVal / (maxVal * 0.05).clamp(1000.0, 5000.0)).clamp(0.0, 1.0)
+                      : 0.0,
+                  squiggleWavelength: wavelength,
+                  squiggleSpeed: (wavyEnabled && playing && _dragValue == null) ? speed : 0.0,
+                  onChanged: (v) {
+                    setState(() {
+                      _dragValue = v;
+                    });
+                  },
+                  onChangeEnd: (v) {
+                    controller.seek(Duration(milliseconds: v.toInt()));
+                    setState(() {
+                      _dragValue = null;
+                    });
+                  },
+                ),
               ),
-              child: SquigglySlider(
-                key: ValueKey('${wavyEnabled}_${playing}_${amplitude}_${wavelength}_${speed}'),
-                value: displayVal,
-                min: 0.0,
-                max: maxVal,
-                activeColor: Colors.white,
-                inactiveColor: Colors.white.withAlpha(35),
-                thumbColor: Colors.white,
-                squiggleAmplitude: (wavyEnabled && playing && _dragValue == null)
-                    ? amplitude * (displayVal / (maxVal * 0.05).clamp(1000.0, 5000.0)).clamp(0.0, 1.0)
-                    : 0.0,
-                squiggleWavelength: wavelength,
-                squiggleSpeed: (wavyEnabled && playing && _dragValue == null) ? speed : 0.0,
-                onChanged: (v) {
-                  setState(() {
-                    _dragValue = v;
-                  });
-                },
-                onChangeEnd: (v) {
-                  controller.seek(Duration(milliseconds: v.toInt()));
-                  setState(() {
-                    _dragValue = null;
-                  });
-                },
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _fmt(_dragValue != null 
+                          ? Duration(milliseconds: _dragValue!.toInt()) 
+                          : controller.progressBarStatus.value.current),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium!
+                          .copyWith(fontSize: 11),
+                    ),
+                    Text(
+                      _fmt(controller.progressBarStatus.value.total),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium!
+                          .copyWith(fontSize: 11),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _fmt(_dragValue != null 
-                        ? Duration(milliseconds: _dragValue!.toInt()) 
-                        : controller.progressBarStatus.value.current),
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium!
-                        .copyWith(fontSize: 11),
-                  ),
-                  Text(
-                    _fmt(controller.progressBarStatus.value.total),
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium!
-                        .copyWith(fontSize: 11),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         );
       });
     });
@@ -1131,34 +1138,46 @@ class _DockIconBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pc = Get.find<PlayerController>();
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Obx(() {
-          final accent = pc.extractedAccentColor.value;
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeInOut,
-            padding: const EdgeInsets.all(6),
-            decoration: active
-                ? BoxDecoration(
-                    color: (activeColor ?? accent ?? Colors.white)
-                        .withAlpha(30),
-                    shape: BoxShape.circle,
-                  )
-                : null,
-            child: Icon(
-              icon,
-              size: 22,
-              color: active
-                  ? (activeColor ?? accent ?? Colors.white)
-                  : Colors.white.withAlpha(140),
-            ),
-          );
-        }),
-      ),
-    );
+    final jamService = Get.find<JamService>();
+
+    return Obx(() {
+      final bool isGuest = jamService.isInJam.value && !jamService.isHost.value;
+      
+      return AbsorbPointer(
+        absorbing: isGuest,
+        child: GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Builder(builder: (context) {
+              final accent = pc.extractedAccentColor.value;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                padding: const EdgeInsets.all(6),
+                decoration: active
+                    ? BoxDecoration(
+                        color: isGuest 
+                            ? Colors.transparent 
+                            : (activeColor ?? accent ?? Colors.white).withAlpha(30),
+                        shape: BoxShape.circle,
+                      )
+                    : null,
+                child: Icon(
+                  icon,
+                  size: 22,
+                  color: isGuest
+                      ? Colors.white.withAlpha(40)
+                      : (active
+                          ? (activeColor ?? accent ?? Colors.white)
+                          : Colors.white.withAlpha(140)),
+                ),
+              );
+            }),
+          ),
+        ),
+      );
+    });
   }
 }
