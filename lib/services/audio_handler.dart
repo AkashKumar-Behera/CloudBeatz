@@ -74,8 +74,6 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
     }
     _mediaLibrary = MediaLibrary();
     _player = AudioPlayer(
-        androidWakeMode: AndroidWakeMode.partial,
-        androidWifiUseEnabled: true,
         audioLoadConfiguration: const AudioLoadConfiguration(
             androidLoadControl: AndroidLoadControl(
       minBufferDuration: Duration(seconds: 50),
