@@ -114,7 +114,7 @@ class ThemeController extends GetxController {
           primaryColorDark: primarySwatch[700],
           //secondaryHeaderColor: primarySwatch[50],
           canvasColor: primarySwatch[700],
-          //scaffoldBackgroundColor: primarySwatch[700],
+          scaffoldBackgroundColor: primarySwatch[700],
           bottomSheetTheme: BottomSheetThemeData(
               backgroundColor: primarySwatch[600],
               modalBarrierColor: primarySwatch[400]),
@@ -164,7 +164,6 @@ class ThemeController extends GetxController {
               selectionColor: primarySwatch[200],
               selectionHandleColor: primarySwatch[200]),
           dialogTheme: DialogThemeData(backgroundColor: primarySwatch[700])
-          //scaffoldBackgroundColor: primarySwatch[700]
           );
       return baseTheme.copyWith(
           textTheme: GoogleFonts.interTextTheme(baseTheme.textTheme));
