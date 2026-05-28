@@ -668,7 +668,9 @@ class JamService extends GetxService {
 
       _peerConnection = await createPeerConnection(rtcConfig);
       
-      final dcInit = RTCDataChannelInit()..negotiated = false;
+      final dcInit = RTCDataChannelInit()
+        ..negotiated = true
+        ..id = 1;
       _sfuDataChannel = await _peerConnection!.createDataChannel("jam-sync", dcInit);
       
       _sfuDataChannel!.onDataChannelState = (state) {
@@ -757,24 +759,21 @@ class JamService extends GetxService {
 
       _peerConnection = await createPeerConnection(rtcConfig);
 
-      final dummyDcInit = RTCDataChannelInit()..negotiated = false;
-      await _peerConnection!.createDataChannel("dummy", dummyDcInit);
-
-      _peerConnection!.onDataChannel = (channel) {
-        printINFO("Guest received remote DataChannel: ${channel.label}");
-        if (channel.label == "jam-sync") {
-          _sfuDataChannel = channel;
-          _sfuDataChannel!.onMessage = (data) {
-            _handleSfuMessage(data.text);
-          };
-          _sfuDataChannel!.onDataChannelState = (state) {
-            printINFO("Guest SFU DataChannel state changed: $state");
-            if (state == RTCDataChannelState.RTCDataChannelOpen) {
-              isSfuActive.value = true;
-            } else {
-              isSfuActive.value = false;
-            }
-          };
+      final dcInit = RTCDataChannelInit()
+        ..negotiated = true
+        ..id = 1;
+      _sfuDataChannel = await _peerConnection!.createDataChannel("jam-sync", dcInit);
+      
+      _sfuDataChannel!.onMessage = (data) {
+        _handleSfuMessage(data.text);
+      };
+      
+      _sfuDataChannel!.onDataChannelState = (state) {
+        printINFO("Guest SFU DataChannel state changed: $state");
+        if (state == RTCDataChannelState.RTCDataChannelOpen) {
+          isSfuActive.value = true;
+        } else {
+          isSfuActive.value = false;
         }
       };
 
@@ -831,43 +830,18 @@ class JamService extends GetxService {
         );
 
         if (pullResponse.statusCode == 200 || pullResponse.statusCode == 201) {
-          final pullData = pullResponse.data;
-          String? renegotiateOfferSdp;
-          
-          if (pullData['sessionDescription'] != null) {
-            renegotiateOfferSdp = pullData['sessionDescription']['sdp'] as String?;
-          } else if (pullData['dataChannels'] != null && pullData['dataChannels'] is List && (pullData['dataChannels'] as List).isNotEmpty) {
-            renegotiateOfferSdp = pullData['dataChannels'][0]['sessionDescription']?['sdp'] as String?;
-          }
-          
-          if (renegotiateOfferSdp == null) {
-            printERROR("Could not extract renegotiate SDP offer from Cloudflare response: $pullData");
-            return;
-          }
-
-          await _peerConnection!.setRemoteDescription(RTCSessionDescription(renegotiateOfferSdp, 'offer'));
-          final renegotiateAnswer = await _peerConnection!.createAnswer();
-          await _peerConnection!.setLocalDescription(renegotiateAnswer);
-
-          final renegotiateUrl = "https://rtc.live.cloudflare.com/v1/apps/$appId/sessions/$guestSessionId/renegotiate";
-          await dio.put(
-            renegotiateUrl,
-            options: Options(
-              headers: {
-                "Authorization": "Bearer $apiToken",
-                "Content-Type": "application/json",
-              },
-            ),
-            data: {
-              "sessionDescription": {
-                "type": "answer",
-                "sdp": renegotiateAnswer.sdp,
-              }
-            },
-          );
-
-          printINFO("Guest SFU Renegotiation completed successfully!");
+          printINFO("Guest successfully pulling remote DataChannel. Pre-negotiated channel is ready!");
         } else {
+          printERROR("Failed to pull Host SFU DataChannel: ${pullResponse.statusCode}");
+        }
+      } else {
+        printERROR("Failed to create Guest SFU Session: ${sessionResponse.statusCode}");
+      }
+    } catch (e) {
+      printERROR("Error setting up Guest SFU: $e");
+      isSfuActive.value = false;
+    }
+  }
           printERROR("Failed to pull Host SFU DataChannel: ${pullResponse.statusCode}");
         }
       } else {
