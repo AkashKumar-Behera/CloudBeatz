@@ -13,6 +13,7 @@ import '../screens/Playlist/playlist_screen_controller.dart';
 import '../widgets/snackbar.dart';
 import '/services/synced_lyrics_service.dart';
 import '/ui/screens/Settings/settings_screen_controller.dart';
+import '/ui/utils/theme_controller.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../services/windows_audio_service.dart';
 import '../../utils/helper.dart';
@@ -22,6 +23,7 @@ import '../widgets/sliding_up_panel.dart';
 import '/models/durationstate.dart';
 import '/services/music_service.dart';
 import '../../services/jam_service.dart';
+
 
 
 class PlayerController extends GetxController
@@ -836,9 +838,12 @@ class PlayerController extends GetxController
     lyricsMode.value = val!;
   }
 
-  /// Extract the most vibrant/saturated accent color from album art for Modern Player buttons.
-  /// Scores ALL available palette swatches by saturation so the result is deterministic
-  /// (e.g. red wins over blue for Spider-Verse because red is more saturated there).
+  /// Single-pass palette extraction that powers BOTH the player accent gradient
+  /// AND the global AnimatedTheme (scaffold background + entire app colors).
+  ///
+  /// One PaletteGenerator call → two outputs:
+  ///   • extractedAccentColor  — vibrant mid-lightness color for player buttons/gradients
+  ///   • ThemeController.setTheme equivalent — dark-muted hue for the app-wide ThemeData
   Future<void> extractAlbumColor(ImageProvider imageProvider, String songId) async {
     if (songId == _lastExtractedSongId) return;
     try {
@@ -846,7 +851,7 @@ class PlayerController extends GetxController
           ResizeImage(imageProvider, height: 200, width: 200),
           maximumColorCount: 32);
 
-      // Collect all non-null swatches and score them by HSL saturation
+      // ── 1. Vibrant accent color for player gradients / buttons ────────────
       final candidates = <PaletteColor>[
         if (generator.vibrantColor != null) generator.vibrantColor!,
         if (generator.darkVibrantColor != null) generator.darkVibrantColor!,
@@ -859,12 +864,10 @@ class PlayerController extends GetxController
 
       if (candidates.isEmpty) return;
 
-      // Pick the swatch with the highest saturation × population weight
       PaletteColor best = candidates.first;
       double bestScore = -1;
       for (final c in candidates) {
         final hsl = HSLColor.fromColor(c.color);
-        // Weight saturation heavily; add a small population bonus to break ties
         final score = hsl.saturation * 10 + (c.population / 10000.0).clamp(0.0, 1.0);
         if (score > bestScore) {
           bestScore = score;
@@ -872,7 +875,6 @@ class PlayerController extends GetxController
         }
       }
 
-      // Clamp lightness to a visible mid-range so the button is never too dark/bright
       final hsl = HSLColor.fromColor(best.color);
       final richColor = hsl
           .withSaturation(hsl.saturation.clamp(0.40, 1.0).toDouble())
@@ -880,6 +882,42 @@ class PlayerController extends GetxController
           .toColor();
 
       extractedAccentColor.value = richColor;
+
+      // ── 2. Global app theme — derive a dark scaffold color from same hue ──
+      // Uses the same palette result, no second image decode needed.
+      final themeController = Get.find<ThemeController>();
+      // Only update global theme when user has Dynamic theme mode selected
+      if (Get.find<SettingsScreenController>().themeModetype.value ==
+          ThemeType.dynamic) {
+        final paletteColor = generator.dominantColor ??
+            generator.darkMutedColor ??
+            generator.darkVibrantColor ??
+            generator.mutedColor ??
+            generator.lightMutedColor ??
+            generator.lightVibrantColor;
+
+        if (paletteColor != null) {
+          final themeHsl = HSLColor.fromColor(paletteColor.color);
+          // Clamp to a dark, slightly saturated scaffold tone (matches setTheme logic)
+          final double targetSaturation = themeHsl.saturation.clamp(0.20, 0.40);
+          final double targetLightness = themeHsl.lightness.clamp(0.09, 0.14);
+          themeController.primaryColor.value = HSLColor.fromAHSL(
+                  1.0, themeHsl.hue, targetSaturation, targetLightness)
+              .toColor();
+          themeController.textColor.value = Colors.white70;
+
+          final primarySwatch = themeController.createMaterialColorPublic(
+              themeController.primaryColor.value!);
+          themeController.themedata.value = themeController.createDynamicThemeData(
+              primarySwatch, textColor: themeController.textColor.value);
+          themeController.currentSongId = songId;
+          Hive.box('appPrefs')
+              .put("themePrimaryColor", themeController.primaryColor.value!.value);
+          themeController.setWindowsTitleBarColor(
+              themeController.themedata.value!.scaffoldBackgroundColor);
+        }
+      }
+
       _lastExtractedSongId = songId;
     } catch (_) {}
   }

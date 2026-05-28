@@ -330,6 +330,19 @@ class ThemeController extends GetxController {
     }
   }
 
+  /// Public wrapper so PlayerController can build swatches without duplicating logic.
+  MaterialColor createMaterialColorPublic(Color color) => _createMaterialColor(color);
+
+  /// Public wrapper to build a dynamic ThemeData from an already-computed swatch.
+  ThemeData createDynamicThemeData(MaterialColor primarySwatch, {Color? textColor}) {
+    return _createThemeData(
+      primarySwatch,
+      ThemeType.dynamic,
+      textColor: textColor ?? Colors.white70,
+      titleColorSwatch: _createMaterialColor(textColor ?? Colors.white70),
+    );
+  }
+
   MaterialColor _createMaterialColor(Color color) {
     List strengths = <double>[.05];
     Map<int, Color> swatch = {};
