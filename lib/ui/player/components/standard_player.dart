@@ -45,22 +45,12 @@ class StandardPlayer extends StatelessWidget {
 
     return Obx(() {
       final accentColor = playerController.extractedAccentColor.value ?? Theme.of(context).primaryColor;
-      final bgColor = Theme.of(context).scaffoldBackgroundColor;
       return Stack(
       children: [
-        /// Hardware-accelerated gradient background (no GPU blur)
+        /// Solid dynamic accent color with fade (no gradient, no GPU blur)
         AnimatedContainer(
-          duration: const Duration(milliseconds: 400),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                accentColor.withOpacity(0.35),
-                bgColor,
-              ],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
+          duration: const Duration(milliseconds: 50),
+          color: accentColor.withOpacity(0.18),
         ),
 
         /// Main content — switches between normal and lyrics layouts

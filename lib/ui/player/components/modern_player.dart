@@ -45,23 +45,13 @@ class ModernPlayer extends StatelessWidget {
     return Obx(() {
       final accentColor = pc.extractedAccentColor.value ?? Theme.of(context).primaryColor;
       final isDark = Theme.of(context).brightness == Brightness.dark;
-      final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
 
       return Stack(
         children: [
-          // ── Hardware-accelerated dynamic accented gradient background ──────
+          // ── Solid dynamic accent color with fade (no gradient, 50ms snappy transition) ──────
           AnimatedContainer(
-            duration: const Duration(milliseconds: 400),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  accentColor.withOpacity(isDark ? 0.30 : 0.45),
-                  backgroundColor,
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
+            duration: const Duration(milliseconds: 50),
+            color: accentColor.withOpacity(isDark ? 0.15 : 0.25),
           ),
 
           // ── Main column ────────────────────────────────────────────────────

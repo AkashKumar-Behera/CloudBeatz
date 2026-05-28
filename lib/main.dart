@@ -67,7 +67,7 @@ class MyApp extends StatelessWidget {
                 builder: (controller) => MediaQuery(
                   data: mQuery.copyWith(textScaler: scale),
                   child: AnimatedTheme(
-                      duration: const Duration(milliseconds: 700),
+                      duration: const Duration(milliseconds: 50),
                       data: controller.themedata.value!,
                       child: child!),
                 ),

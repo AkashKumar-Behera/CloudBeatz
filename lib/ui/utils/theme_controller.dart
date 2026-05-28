@@ -101,20 +101,20 @@ class ThemeController extends GetxController {
             systemNavigationBarContrastEnforced: true),
       );
 
-      final baseTheme = ThemeData(
+       final baseTheme = ThemeData(
           useMaterial3: false,
           primaryColor: primarySwatch![500],
           colorScheme: ColorScheme.fromSwatch(
               accentColor: primarySwatch[200],
               brightness: Brightness.dark,
-              backgroundColor: primarySwatch[700],
+              backgroundColor: primarySwatch[500],
               primarySwatch: primarySwatch),
           cardColor: primarySwatch[600],
           primaryColorLight: primarySwatch[400],
           primaryColorDark: primarySwatch[700],
           //secondaryHeaderColor: primarySwatch[50],
-          canvasColor: primarySwatch[700],
-          scaffoldBackgroundColor: primarySwatch[700],
+          canvasColor: primarySwatch[500],
+          scaffoldBackgroundColor: primarySwatch[500],
           bottomSheetTheme: BottomSheetThemeData(
               backgroundColor: primarySwatch[600],
               modalBarrierColor: primarySwatch[400]),
@@ -144,7 +144,7 @@ class ThemeController extends GetxController {
                   : Colors.white70,
               color: textColor),
           navigationRailTheme: NavigationRailThemeData(
-              backgroundColor: primarySwatch[700],
+              backgroundColor: primarySwatch[500],
               selectedIconTheme: const IconThemeData(color: Colors.white),
               unselectedIconTheme: IconThemeData(color: primarySwatch[100]),
               selectedLabelTextStyle: const TextStyle(
@@ -163,7 +163,7 @@ class ThemeController extends GetxController {
               cursorColor: primarySwatch[200],
               selectionColor: primarySwatch[200],
               selectionHandleColor: primarySwatch[200]),
-          dialogTheme: DialogThemeData(backgroundColor: primarySwatch[700])
+          dialogTheme: DialogThemeData(backgroundColor: primarySwatch[500])
           );
       return baseTheme.copyWith(
           textTheme: GoogleFonts.interTextTheme(baseTheme.textTheme));

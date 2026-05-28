@@ -195,7 +195,7 @@ class Home extends StatelessWidget {
                     onSwipeUp: () {
                       playerController.queuePanelController.open();
                     },
-                    panel: const Player(),
+                    panel: isWideScreen ? const SizedBox.shrink() : const Player(),
                     body: const ScreenNavigation(),
                     header: !isWideScreen
                         ? InkWell(
