@@ -73,3 +73,4 @@ android/app/.cxx/Debug/*
 
 # Jam Firebase Credentials Configuration
 lib/services/firebase_config.dart
+lib/services/jam_secrets.dart

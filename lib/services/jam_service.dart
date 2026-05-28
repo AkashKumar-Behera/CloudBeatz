@@ -15,6 +15,7 @@ import '../ui/player/player_controller.dart';
 import '../ui/widgets/jam_bottom_sheet.dart';
 import '../services/music_service.dart';
 import '../utils/helper.dart';
+import 'jam_secrets.dart';
 
 class JamService extends GetxService {
   final FirebaseDatabase _db = FirebaseDatabase.instance;
@@ -622,8 +623,8 @@ class JamService extends GetxService {
   Future<Map<String, dynamic>> _fetchIceServers() async {
     try {
       final dio = Dio();
-      final turnTokenId = "0eb61e5adcc1fd8d059b61007a1af9a4";
-      final turnApiToken = "7904620e1c4f1eae5b1d14b3d6167d24cc6f8c0bf9c2b0006fd35dee8d5c49d7";
+      final turnTokenId = JamSecrets.turnTokenId;
+      final turnApiToken = JamSecrets.turnApiToken;
       final url = "https://rtc.live.cloudflare.com/v1/turn/keys/$turnTokenId/credentials/generate-ice-servers";
       
       final response = await dio.post(
@@ -693,8 +694,8 @@ class JamService extends GetxService {
       await _peerConnection!.setLocalDescription(offer);
 
       final dio = Dio();
-      final appId = "ed0d7f61159c81af6bcf4d50cfce4d46";
-      final apiToken = "7770fef0c07905db1b77b782920abbb8559595dd3fc411fc452e70d26406b69b";
+      final appId = JamSecrets.appId;
+      final apiToken = JamSecrets.apiToken;
       final url = "https://rtc.live.cloudflare.com/v1/apps/$appId/sessions/new";
 
       final sessionResponse = await dio.post(
@@ -790,9 +791,8 @@ class JamService extends GetxService {
       await _peerConnection!.setLocalDescription(offer);
 
       final dio = Dio();
-      final appId = "ed0d7f61159c81af6bcf4d50cfce4d46";
-      final apiToken = "7770fef0c07905db1b77b782920abbb8559595dd3fc411fc452e70d26406b69b";
-
+      final appId = JamSecrets.appId;
+      final apiToken = JamSecrets.apiToken;
       final url = "https://rtc.live.cloudflare.com/v1/apps/$appId/sessions/new";
       final sessionResponse = await dio.post(
         url,
