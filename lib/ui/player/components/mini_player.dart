@@ -31,6 +31,9 @@ class MiniPlayer extends StatelessWidget {
       final bool isGuest = jamService.isInJam.value && !jamService.isHost.value;
       final bool allowPlayPause = jamService.activeSession.value?.config.allowGuestPlayPause ?? false;
 
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      final accentColor = playerController.extractedAccentColor.value ?? Theme.of(context).primaryColor;
+
       return Visibility(
         visible: playerController.isPlayerpanelTopVisible.value,
         child: AnimatedOpacity(
@@ -39,7 +42,22 @@ class MiniPlayer extends StatelessWidget {
           child: Container(
             height: playerController.playerPanelMinHeight.value,
             width: size.width,
-            color: Theme.of(context).bottomSheetTheme.backgroundColor,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  accentColor.withOpacity(isDark ? 0.15 : 0.22),
+                  Theme.of(context).scaffoldBackgroundColor,
+                ],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              border: Border(
+                top: BorderSide(
+                  color: accentColor.withOpacity(0.12),
+                  width: 1.0,
+                ),
+              ),
+            ),
             child: Center(
               child: Column(
                 children: [
