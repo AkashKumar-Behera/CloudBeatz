@@ -36,6 +36,7 @@ class JamService extends GetxService {
   String? _sfuSessionId;
   Timer? _sfuTickerTimer;
   final isSfuActive = false.obs;
+  bool _isConnectingSfu = false;
 
   StreamSubscription? _sessionSubscription;
   StreamSubscription? _reactionsSubscription;
@@ -659,6 +660,8 @@ class JamService extends GetxService {
   }
 
   Future<void> _initHostSFUSession(String roomCode) async {
+    if (isSfuActive.value || _isConnectingSfu) return;
+    _isConnectingSfu = true;
     try {
       printINFO("Initializing Host WebRTC SFU Session...");
       final iceServersConfig = await _fetchIceServers();
@@ -749,12 +752,15 @@ class JamService extends GetxService {
     } catch (e) {
       printERROR("Error setting up Host SFU: $e");
       isSfuActive.value = false;
+    } finally {
+      _isConnectingSfu = false;
     }
   }
 
   Future<void> _initGuestSFUSession(String roomCode, String hostSfuSessionId) async {
+    if (isSfuActive.value || _isConnectingSfu) return;
+    _isConnectingSfu = true;
     try {
-      if (isSfuActive.value) return;
       printINFO("Initializing Guest WebRTC SFU Session pulling from Host ID: $hostSfuSessionId...");
 
       final iceServersConfig = await _fetchIceServers();
@@ -849,16 +855,8 @@ class JamService extends GetxService {
     } catch (e) {
       printERROR("Error setting up Guest SFU: $e");
       isSfuActive.value = false;
-    }
-  }
-          printERROR("Failed to pull Host SFU DataChannel: ${pullResponse.statusCode}");
-        }
-      } else {
-        printERROR("Failed to create Guest SFU Session: ${sessionResponse.statusCode}");
-      }
-    } catch (e) {
-      printERROR("Error setting up Guest SFU: $e");
-      isSfuActive.value = false;
+    } finally {
+      _isConnectingSfu = false;
     }
   }
 
