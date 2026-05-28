@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../services/jam_service.dart';
+import '../../models/jam_session.dart';
 import '../../utils/helper.dart';
 
 class JamBottomSheetController extends GetxController {
@@ -475,15 +476,30 @@ class JamBottomSheet extends StatelessWidget {
                 Container(
                   width: 12,
                   height: 12,
-                  decoration: const BoxDecoration(
-                    color: Colors.greenAccent,
+                  decoration: BoxDecoration(
+                    color: controller.jamService.isSfuActive.value ? Colors.greenAccent : Colors.orangeAccent,
                     shape: BoxShape.circle,
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  isHost ? "You're Hosting Jam" : "Syncing to Jam",
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isHost ? "You're Hosting Jam" : "Syncing to Jam",
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      controller.jamService.isSfuActive.value 
+                        ? "WebRTC Ultra-Low Latency Active ⚡" 
+                        : "Firebase Realtime Sync Active ☁️",
+                      style: TextStyle(
+                        color: controller.jamService.isSfuActive.value ? Colors.greenAccent : Colors.orangeAccent,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -529,6 +545,28 @@ class JamBottomSheet extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 24),
+
+        // Guest Permission config (only shown to host)
+        if (isHost) ...[
+          SwitchListTile(
+            title: const Text(
+              "Allow guests to Play / Pause",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            subtitle: Text(
+              "Guests can only play or pause the current music",
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+            ),
+            value: session.config.allowGuestPlayPause,
+            activeColor: primaryColor,
+            contentPadding: EdgeInsets.zero,
+            onChanged: (bool value) {
+              final newConfig = JamConfig(allowGuestPlayPause: value);
+              controller.jamService.updateConfig(newConfig);
+            },
+          ),
+          const SizedBox(height: 16),
+        ],
         
         // Currently synced song (if any)
         if (session.currentSong != null) ...[
