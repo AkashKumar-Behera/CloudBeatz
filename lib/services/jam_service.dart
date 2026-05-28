@@ -637,7 +637,7 @@ class JamService extends GetxService {
         data: {"ttl": 86400},
       );
       
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final data = response.data;
         printINFO("Successfully fetched Cloudflare ICE servers.");
         return data;
@@ -832,7 +832,18 @@ class JamService extends GetxService {
 
         if (pullResponse.statusCode == 200 || pullResponse.statusCode == 201) {
           final pullData = pullResponse.data;
-          final renegotiateOfferSdp = pullData['sessionDescription']['sdp'] as String;
+          String? renegotiateOfferSdp;
+          
+          if (pullData['sessionDescription'] != null) {
+            renegotiateOfferSdp = pullData['sessionDescription']['sdp'] as String?;
+          } else if (pullData['dataChannels'] != null && pullData['dataChannels'] is List && (pullData['dataChannels'] as List).isNotEmpty) {
+            renegotiateOfferSdp = pullData['dataChannels'][0]['sessionDescription']?['sdp'] as String?;
+          }
+          
+          if (renegotiateOfferSdp == null) {
+            printERROR("Could not extract renegotiate SDP offer from Cloudflare response: $pullData");
+            return;
+          }
 
           await _peerConnection!.setRemoteDescription(RTCSessionDescription(renegotiateOfferSdp, 'offer'));
           final renegotiateAnswer = await _peerConnection!.createAnswer();
