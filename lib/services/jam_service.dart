@@ -684,6 +684,11 @@ class JamService extends GetxService {
         }
       };
 
+      if (_sfuDataChannel!.state == RTCDataChannelState.RTCDataChannelOpen) {
+        isSfuActive.value = true;
+        _startSfuTicker();
+      }
+
       final offer = await _peerConnection!.createOffer();
       await _peerConnection!.setLocalDescription(offer);
 
@@ -776,6 +781,10 @@ class JamService extends GetxService {
           isSfuActive.value = false;
         }
       };
+
+      if (_sfuDataChannel!.state == RTCDataChannelState.RTCDataChannelOpen) {
+        isSfuActive.value = true;
+      }
 
       final offer = await _peerConnection!.createOffer();
       await _peerConnection!.setLocalDescription(offer);
