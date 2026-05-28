@@ -38,8 +38,6 @@ class PlayerController extends GetxController
   final isQueueReorderingInProcess = false.obs;
   PanelController playerPanelController = PanelController();
   PanelController queuePanelController = PanelController();
-  AnimationController? gesturePlayerStateAnimationController;
-  Animation<double>? gesturePlayerStateAnimation;
   bool isRadioModeOn = false;
   String? radioContinuationParam;
   dynamic radioInitiatorItem;
@@ -67,8 +65,6 @@ class PlayerController extends GetxController
   final isLyricsLoading = false.obs;
   final lyricsMode = 0.obs;
   bool isDesktopLyricsDialogOpen = false;
-  // 0 for play, 1 for pause, 2 for blank
-  final gesturePlayerVisibleState = 2.obs;
   final lyricUi = UINetease(
     highlight: true,
     // Active (playing) line — large and white (built into getPlayingMainTextStyle)
@@ -143,17 +139,6 @@ class PlayerController extends GetxController
     }
   }
 
-  void initGesturePlayerStateAnimationController() {
-    gesturePlayerStateAnimationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 1),
-    );
-
-    gesturePlayerStateAnimation = Tween<double>(begin: 1, end: 0).animate(
-        CurvedAnimation(
-            parent: gesturePlayerStateAnimationController!,
-            curve: Curves.easeIn));
-  }
 
   void _setInitLyricsMode() {
     lyricsMode.value = Hive.box("AppPrefs").get("lyricsMode") ?? 0;
@@ -298,11 +283,6 @@ class PlayerController extends GetxController
         _lastExtractedSongId = null;
         if (isDesktopLyricsDialogOpen) {
           Navigator.pop(Get.context!);
-        }
-
-        // reset player visible state when player is in gesture mode
-        if (Get.find<SettingsScreenController>().playerUi.value == 1) {
-          gesturePlayerVisibleState.value = 2;
         }
 
         if (Get.isRegistered<JamService>()) {
@@ -655,13 +635,6 @@ class PlayerController extends GetxController
   void playPause() {
     if (initFlagForPlayer) return;
     _audioHandler.playbackState.value.playing ? pause() : play();
-    // for gesture player
-    if (Get.find<SettingsScreenController>().playerUi.value == 1) {
-      gesturePlayerVisibleState.value =
-          _audioHandler.playbackState.value.playing ? 0 : 1;
-      gesturePlayerStateAnimationController?.reset();
-      gesturePlayerStateAnimationController?.forward();
-    }
   }
 
   void prev() {
@@ -1068,7 +1041,6 @@ class PlayerController extends GetxController
     _audioHandler.customAction('dispose');
     keyboardSubscription.cancel();
     scrollController.dispose();
-    gesturePlayerStateAnimationController?.dispose();
     sleepTimer?.cancel();
     if (GetPlatform.isWindows) {
       Get.delete<WindowsAudioService>();

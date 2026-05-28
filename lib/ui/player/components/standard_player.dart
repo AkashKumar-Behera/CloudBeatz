@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:squiggly_slider/slider.dart';
@@ -11,7 +9,6 @@ import '../../widgets/rectangular_slider_thumb_shape.dart';
 import '../../widgets/songinfo_bottom_sheet.dart';
 import '../player_controller.dart';
 import 'albumart_lyrics.dart';
-import 'backgroud_image.dart';
 import 'lyrics_switch.dart';
 import 'lyrics_widget.dart';
 import 'modern_player.dart';
@@ -33,51 +30,36 @@ class StandardPlayer extends StatelessWidget {
     final size = MediaQuery.of(context).size;
     final PlayerController playerController = Get.find<PlayerController>();
 
+    final double topMargin = GetPlatform.isDesktop
+        ? 30.0
+        : (size.height < 750 ? 110.0 : 140.0);
+    final double bottomFixedPadding = GetPlatform.isDesktop ? 20.0 : 80.0;
+    final otherComponentsHeight = topMargin + 40.0 + bottomFixedPadding + 230.0;
+
     double playerArtImageSize = size.width - 60;
     final spaceAvailableForArtImage =
-        size.height - (70 + Get.mediaQuery.padding.bottom + 330);
+        size.height - (Get.mediaQuery.padding.bottom + otherComponentsHeight);
     playerArtImageSize = playerArtImageSize > spaceAvailableForArtImage
         ? spaceAvailableForArtImage
         : playerArtImageSize;
 
-    return Stack(
+    return Obx(() {
+      final accentColor = playerController.extractedAccentColor.value ?? Theme.of(context).primaryColor;
+      final bgColor = Theme.of(context).scaffoldBackgroundColor;
+      return Stack(
       children: [
-        /// Background blurred album art
-        BackgroudImage(
-          key: Key("${playerController.currentSong.value?.id}_background"),
-          cacheHeight: 200,
-        ),
-
-        /// Blur + tint overlay
-        BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: Container(
-                  color: Theme.of(context).primaryColor.withAlpha(204),
-                ),
-              ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(
-                  height: 65 + Get.mediaQuery.padding.bottom + 120,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Theme.of(context).primaryColor,
-                        Theme.of(context).primaryColor,
-                        Theme.of(context).primaryColor.withAlpha(102),
-                        Colors.transparent,
-                      ],
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      stops: const [0, 0.5, 0.8, 1],
-                    ),
-                  ),
-                ),
-              ),
-            ],
+        /// Hardware-accelerated gradient background (no GPU blur)
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 400),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                accentColor.withOpacity(0.35),
+                bgColor,
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
           ),
         ),
 
@@ -201,6 +183,7 @@ class StandardPlayer extends StatelessWidget {
         }),
       ],
     );
+    });
   }
 }
 
@@ -222,9 +205,14 @@ class _StandardNormalLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double topMargin = GetPlatform.isDesktop
+        ? 30.0
+        : (size.height < 750 ? 110.0 : 140.0);
+    final double bottomPadding = GetPlatform.isDesktop ? 20.0 : 80.0;
+
     return Column(
       children: [
-        SizedBox(height: size.height < 750 ? 110 : 140),
+        SizedBox(height: topMargin),
 
         Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -246,7 +234,7 @@ class _StandardNormalLayout extends StatelessWidget {
 
         Padding(
           padding: EdgeInsets.only(
-              bottom: 80 + Get.mediaQuery.padding.bottom),
+              bottom: bottomPadding + Get.mediaQuery.padding.bottom),
           child: Container(
             constraints: const BoxConstraints(maxWidth: 500),
             child: const PlayerControlWidget(),
@@ -272,8 +260,9 @@ class _StandardLyricsLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final topPad = Get.mediaQuery.padding.top;
     final bottomPad = Get.mediaQuery.padding.bottom;
-    // Fixed bottom section: progress(~30) + gap(8) + controls(~56) + bottom padding (80 + bottomPad)
-    final bottomFixedH = 30.0 + 8.0 + 56.0 + 80.0 + bottomPad;
+    final double bottomFixedPadding = GetPlatform.isDesktop ? 20.0 : 80.0;
+    // Fixed bottom section: progress(~30) + gap(8) + controls(~56) + bottom padding (bottomFixedPadding + bottomPad)
+    final bottomFixedH = 30.0 + 8.0 + 56.0 + bottomFixedPadding + bottomPad;
     // Fixed top section: status bar space + header row (~56)
     final topFixedH = (topPad + 8) + 56.0;
 
@@ -309,7 +298,7 @@ class _StandardLyricsLayout extends StatelessWidget {
 
           Padding(
             padding: EdgeInsets.only(
-              bottom: 80.0 + bottomPad,
+              bottom: bottomFixedPadding + bottomPad,
             ),
             child: const _StdLyricsControls(),
           ),

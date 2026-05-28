@@ -300,60 +300,54 @@ class ModernPlayer extends StatelessWidget {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 380),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(100),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(
-                height: 56,
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(18),
-                  borderRadius: BorderRadius.circular(100),
-                  border: Border.all(
-                    color: Colors.white.withAlpha(30),
-                    width: 1,
-                  ),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    // Loop
-                    Obx(() => _DockIconBtn(
-                          icon: Icons.all_inclusive_rounded,
-                          active: pc.isLoopModeEnabled.value,
-                          onTap: pc.toggleLoopMode,
-                        )),
-                    // Shuffle
-                    Obx(() => _DockIconBtn(
-                          icon: Icons.shuffle_rounded,
-                          active: pc.isShuffleModeEnabled.value,
-                          onTap: pc.toggleShuffleMode,
-                        )),
-                    // Favourite
-                    Obx(() => _DockIconBtn(
-                          icon: pc.isCurrentSongFav.isFalse
-                              ? Icons.favorite_border_rounded
-                              : Icons.favorite_rounded,
-                          active: pc.isCurrentSongFav.isTrue,
-                          activeColor: Colors.redAccent,
-                          onTap: pc.toggleFavourite,
-                        )),
-                    // Queue
-                    _DockIconBtn(
-                      icon: Icons.queue_music_rounded,
-                      onTap: () {
-                        if (GetPlatform.isDesktop) {
-                          pc.homeScaffoldkey.currentState!
-                              .openEndDrawer();
-                        } else {
-                          pc.queuePanelController.open();
-                        }
-                      },
-                    ),
-                  ],
-                ),
+          child: Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(22),
+              borderRadius: BorderRadius.circular(100),
+              border: Border.all(
+                color: Colors.white.withAlpha(35),
+                width: 1,
               ),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Loop
+                Obx(() => _DockIconBtn(
+                      icon: Icons.all_inclusive_rounded,
+                      active: pc.isLoopModeEnabled.value,
+                      onTap: pc.toggleLoopMode,
+                    )),
+                // Shuffle
+                Obx(() => _DockIconBtn(
+                      icon: Icons.shuffle_rounded,
+                      active: pc.isShuffleModeEnabled.value,
+                      onTap: pc.toggleShuffleMode,
+                    )),
+                // Favourite
+                Obx(() => _DockIconBtn(
+                      icon: pc.isCurrentSongFav.isFalse
+                          ? Icons.favorite_border_rounded
+                          : Icons.favorite_rounded,
+                      active: pc.isCurrentSongFav.isTrue,
+                      activeColor: Colors.redAccent,
+                      onTap: pc.toggleFavourite,
+                    )),
+                // Queue
+                _DockIconBtn(
+                  icon: Icons.queue_music_rounded,
+                  onTap: () {
+                    if (GetPlatform.isDesktop) {
+                      pc.homeScaffoldkey.currentState!
+                          .openEndDrawer();
+                    } else {
+                      pc.queuePanelController.open();
+                    }
+                  },
+                ),
+              ],
             ),
           ),
         ),

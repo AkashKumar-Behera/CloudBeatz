@@ -5,6 +5,7 @@ class JamSession {
   final bool isActive;
   final JamCurrentSong? currentSong;
   final Map<String, JamParticipant> participants;
+  final JamConfig config;
 
   JamSession({
     required this.code,
@@ -13,6 +14,7 @@ class JamSession {
     required this.isActive,
     this.currentSong,
     required this.participants,
+    required this.config,
   });
 
   factory JamSession.fromMap(String code, Map<dynamic, dynamic> map) {
@@ -33,6 +35,9 @@ class JamSession {
           ? JamCurrentSong.fromMap(Map<dynamic, dynamic>.from(map['currentSong']))
           : null,
       participants: parsedParticipants,
+      config: map['config'] != null
+          ? JamConfig.fromMap(Map<dynamic, dynamic>.from(map['config']))
+          : JamConfig(allowGuestPlayPause: false),
     );
   }
 
@@ -43,6 +48,25 @@ class JamSession {
       'isActive': isActive,
       'currentSong': currentSong?.toMap(),
       'participants': participants.map((key, value) => MapEntry(key, value.toMap())),
+      'config': config.toMap(),
+    };
+  }
+}
+
+class JamConfig {
+  final bool allowGuestPlayPause;
+
+  JamConfig({required this.allowGuestPlayPause});
+
+  factory JamConfig.fromMap(Map<dynamic, dynamic> map) {
+    return JamConfig(
+      allowGuestPlayPause: map['allowGuestPlayPause'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'allowGuestPlayPause': allowGuestPlayPause,
     };
   }
 }
@@ -125,12 +149,14 @@ class JamParticipant {
   final String name;
   final int joinedAt;
   final bool isActive;
+  final int lastHeartbeat;
 
   JamParticipant({
     required this.deviceId,
     required this.name,
     required this.joinedAt,
     required this.isActive,
+    required this.lastHeartbeat,
   });
 
   factory JamParticipant.fromMap(String deviceId, Map<dynamic, dynamic> map) {
@@ -139,6 +165,7 @@ class JamParticipant {
       name: map['name'] as String? ?? '',
       joinedAt: map['joinedAt'] as int? ?? 0,
       isActive: map['isActive'] as bool? ?? false,
+      lastHeartbeat: map['lastHeartbeat'] as int? ?? 0,
     );
   }
 
@@ -147,6 +174,7 @@ class JamParticipant {
       'name': name,
       'joinedAt': joinedAt,
       'isActive': isActive,
+      'lastHeartbeat': lastHeartbeat,
     };
   }
 }
