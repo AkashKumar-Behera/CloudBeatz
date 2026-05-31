@@ -4,7 +4,7 @@ import 'package:squiggly_slider/slider.dart';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:harmonymusic/ui/player/components/backgroud_image.dart';
+import 'package:cloudbeatz/ui/player/components/backgroud_image.dart';
 
 import 'package:widget_marquee/widget_marquee.dart';
 
