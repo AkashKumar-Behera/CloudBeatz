@@ -98,6 +98,12 @@ flutter run
 * **Windows:** `flutter build windows --release`
 * **Linux:** `flutter build linux --release`
 
+### 5. Compile for iOS
+To compile for iOS, please checkout the `ios` branch:
+```bash
+git checkout ios
+```
+
 ---
 
 ## 📄 License
