@@ -62,7 +62,7 @@ class JarvisIpcService {
             }
             response.write(jsonEncode({"result": "success"}));
           } 
-          else if (path == '/search_play') {
+          else if (path == '/') {
             final query = params['query'];
             if (query != null && query.isNotEmpty) {
               final musicServices = Get.find<MusicServices>();
