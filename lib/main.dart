@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:audio_service/audio_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'package:terminate_restart/terminate_restart.dart';
 import 'services/firebase_config.dart';
 import 'services/jam_service.dart';
 
+import 'services/jarvis_ipc_service.dart';
 import '/ui/screens/Search/search_screen_controller.dart';
 import '/utils/get_localization.dart';
 import '/services/downloader.dart';
@@ -38,6 +40,9 @@ Future<void> main() async {
   WidgetsBinding.instance.addObserver(LifecycleHandler());
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   TerminateRestart.instance.initialize();
+  if (Platform.isWindows) {
+    JarvisIpcService.start();
+  }
   runApp(const MyApp());
 }
 
