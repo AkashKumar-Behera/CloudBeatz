@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '/models/album.dart';
 import '../screens/Search/search_result_screen_controller.dart';
 import '/ui/widgets/content_list_widget_item.dart';
 
@@ -19,7 +20,7 @@ class ContentListWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isAlbumContent = content.runtimeType.toString() == "AlbumContent";
+    final isAlbumContent = content is AlbumContent;
     // ignore: avoid_unnecessary_containers
     return Container(
       child: Column(

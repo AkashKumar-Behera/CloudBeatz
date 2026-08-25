@@ -719,7 +719,9 @@ class MusicServices extends getx.GetxService {
           for (var item in mixedItems) {
             String itemType;
             if (item is MediaItem) {
-              itemType = "Songs";
+              itemType = item.artist != null && item.artist!.isNotEmpty
+                  ? "${item.artist!.split(",")[0]}s"
+                  : "Songs";
             } else if (item is Album) {
               itemType = "Albums";
             } else if (item is Playlist) {
@@ -727,9 +729,10 @@ class MusicServices extends getx.GetxService {
             } else {
               itemType = "${item.runtimeType}s";
             }
-            if (searchResults.containsKey(itemType)) {
+            if (searchResults.containsKey(itemType) &&
+                (searchResults[itemType] as List).length < 3) {
               (searchResults[itemType] as List).add(item);
-            } else {
+            } else if (!searchResults.containsKey(itemType)) {
               searchResults[itemType] = [item];
             }
           }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
+import '/models/album.dart';
 import '../navigator.dart';
 import 'image_widget.dart';
 
@@ -14,7 +14,7 @@ class ContentListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isAlbum = content.runtimeType.toString() == "Album";
+    final isAlbum = content is Album;
     return InkWell(
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,

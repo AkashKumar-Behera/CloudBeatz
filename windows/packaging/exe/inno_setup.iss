@@ -1,6 +1,6 @@
 [Setup]
 AppId=B9F6E402-0CAE-4045-BDE6-14BD6C39C4EA
-AppVersion=1.12.1+26
+AppVersion=1.15.1+28
 AppName=CloudBeatz
 AppPublisher=CloudBeatz
 AppPublisherURL=https://cloudbeatz.web.app/
@@ -9,7 +9,7 @@ AppUpdatesURL=https://github.com/AkashKumar-Behera/cloudbeatzdownload
 DefaultDirName={autopf}\cloudbeatz
 DisableProgramGroupPage=yes
 OutputDir=.
-OutputBaseFilename=cloudbeatz-1.12.1
+OutputBaseFilename=cloudbeatz-1.15.1
 Compression=lzma
 SolidCompression=yes
 SetupIconFile=..\..\windows\runner\resources\app_icon.ico

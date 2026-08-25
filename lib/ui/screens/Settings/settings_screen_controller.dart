@@ -51,7 +51,7 @@ class SettingsScreenController extends GetxController {
   final squigglyAmplitude = 2.0.obs;
   final squigglyWavelength = 10.0.obs;
   final squigglySpeed = 0.05.obs;
-  final currentVersion = "V1.12.2";
+  final currentVersion = "V1.15.1";
 
   @override
   void onInit() {
