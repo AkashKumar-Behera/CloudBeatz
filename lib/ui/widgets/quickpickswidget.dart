@@ -24,10 +24,15 @@ class QuickPicksWidget extends StatelessWidget {
         children: [
           Align(
               alignment: Alignment.centerLeft,
-              child: Text(
-                content.title.toLowerCase().removeAllWhitespace.tr,
-                style: Theme.of(context).textTheme.titleLarge,
-              )),
+              child: Builder(builder: (context) {
+                final key = content.title.toLowerCase().removeAllWhitespace;
+                final trTitle = key.tr;
+                final displayTitle = (trTitle != key) ? trTitle : content.title;
+                return Text(
+                  displayTitle,
+                  style: Theme.of(context).textTheme.titleLarge,
+                );
+              })),
           const SizedBox(height: 10),
           Expanded(
             child: Scrollbar(

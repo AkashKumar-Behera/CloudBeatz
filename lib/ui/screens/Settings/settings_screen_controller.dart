@@ -28,7 +28,7 @@ class SettingsScreenController extends GetxController {
   final loudnessNormalizationEnabled = false.obs;
   final noOfHomeScreenContent = 3.obs;
   final streamingQuality = AudioQuality.High.obs;
-  final playerUi = 0.obs;
+  final playerUi = 1.obs;
   final slidableActionEnabled = true.obs;
   final isIgnoringBatteryOptimizations = false.obs;
   final autoOpenPlayer = false.obs;
@@ -45,7 +45,7 @@ class SettingsScreenController extends GetxController {
   final isBottomNavBarEnabled = false.obs;
   final backgroundPlayEnabled = true.obs;
   final keepScreenAwake = false.obs;
-  final restorePlaybackSession = false.obs;
+  final restorePlaybackSession = true.obs;
   final cacheHomeScreenData = true.obs;
   final squigglySliderEnabled = true.obs;
   final squigglyAmplitude = 2.0.obs;
@@ -89,8 +89,8 @@ class SettingsScreenController extends GetxController {
             ? "zh-CN"
             : appLang;
     isBottomNavBarEnabled.value =
-        isDesktop ? false : (setBox.get("isBottomNavBarEnabled") ?? true);
-    noOfHomeScreenContent.value = setBox.get("noOfHomeScreenContent") ?? 5;
+        isDesktop ? false : (setBox.get("isBottomNavBarEnabled") ?? false);
+    noOfHomeScreenContent.value = setBox.get("noOfHomeScreenContent") ?? 3;
     isTransitionAnimationDisabled.value =
         setBox.get("isTransitionAnimationDisabled") ?? false;
     cacheSongs.value = setBox.get('cacheSongs') ?? false;
@@ -102,7 +102,7 @@ class SettingsScreenController extends GetxController {
         : (setBox.get("loudnessNormalizationEnabled") ?? false);
     autoOpenPlayer.value = (setBox.get("autoOpenPlayer") ?? true);
     restorePlaybackSession.value =
-        setBox.get("restrorePlaybackSession") ?? false;
+        setBox.get("restrorePlaybackSession") ?? true;
     cacheHomeScreenData.value = setBox.get("cacheHomeScreenData") ?? true;
     squigglySliderEnabled.value = setBox.get("squigglySliderEnabled") ?? true;
     squigglyAmplitude.value = (setBox.get("squigglyAmplitude") ?? 2.0).toDouble();
@@ -110,7 +110,7 @@ class SettingsScreenController extends GetxController {
     squigglySpeed.value = (setBox.get("squigglySpeed") ?? 0.05).toDouble();
     streamingQuality.value =
         AudioQuality.values[setBox.get('streamingQuality')];
-    playerUi.value = isDesktop ? 0 : (setBox.get('playerUi') ?? 0);
+    playerUi.value = isDesktop ? 0 : (setBox.get('playerUi') ?? 1);
     backgroundPlayEnabled.value = setBox.get("backgroundPlayEnabled") ?? true;
     keepScreenAwake.value =
         setBox.get("keepScreenAwake") ?? GetPlatform.isDesktop ? true : false;
@@ -150,6 +150,7 @@ class SettingsScreenController extends GetxController {
   void setContentNumber(int? no) {
     noOfHomeScreenContent.value = no!;
     setBox.put("noOfHomeScreenContent", no);
+    Get.find<HomeScreenController>().loadContentFromNetwork(silent: true);
   }
 
   void setStreamingQuality(dynamic val) {

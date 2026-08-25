@@ -97,6 +97,7 @@ class SearchResultScreenController extends GetxController
     if (args != null) {
       queryString.value = args;
       resultContent.value = await musicServices.search(args);
+      Get.find<HomeScreenController>().updateHomeWithSearchResults(resultContent.value);
       final allKeys = resultContent.keys.where((element) => ([
             "Songs",
             "Videos",

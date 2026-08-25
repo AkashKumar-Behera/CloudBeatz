@@ -43,12 +43,8 @@ class HomeScreenController extends GetxController {
       final loaded = await loadContentFromDb();
 
       if (loaded) {
-        final currTimeSecsDiff = DateTime.now().millisecondsSinceEpoch -
-            (box.get("homeScreenDataTime") ??
-                DateTime.now().millisecondsSinceEpoch);
-        if (currTimeSecsDiff / 1000 > 3600 * 8) {
-          loadContentFromNetwork(silent: true);
-        }
+        // Load fresh content in background so home screen playlists always stay updated
+        loadContentFromNetwork(silent: true);
       } else {
         loadContentFromNetwork();
       }
@@ -135,31 +131,27 @@ class HomeScreenController extends GetxController {
         }
       } else if (contentType == "BOLI") {
         try {
-          final songId = box.get("recentSongId");
+          String? songId = box.get("recentSongId");
+          if (songId == null || songId.isEmpty || songId.contains("file")) {
+            final songsBox = Hive.box("SongsUrlCache");
+            if (songsBox.keys.isNotEmpty) {
+              songId = songsBox.keys.last.toString();
+            }
+          }
+
           if (songId != null && songId.isNotEmpty && !songId.contains("file")) {
             final rel = (await _musicServices.getContentRelatedToSong(
                 songId, getContentHlCode()));
             if (rel != null && rel.isNotEmpty) {
               final con = rel.removeAt(0);
               quickPicks.value =
-                  QuickPicks(List<MediaItem>.from(con["contents"]));
+                  QuickPicks(List<MediaItem>.from(con["contents"]), title: con["title"] ?? "discover");
               middleContentTemp.addAll(rel);
-            }
-          } else {
-            // Fallback if recentSongId is empty or is an offline file path
-            List charts = await _musicServices.getCharts("QP");
-            final chartIndex = charts.indexWhere((element) =>
-                element['title'] == "Trending" || element['title'] == "Top Music Videos");
-            if (chartIndex != -1) {
-              quickPicks.value = QuickPicks(
-                  List<MediaItem>.from(charts[chartIndex]["contents"]),
-                  title: charts[chartIndex]['title']);
-              middleContentTemp.addAll(charts);
             }
           }
         } catch (e) {
           printERROR(
-              "Seems Based on last interaction content currently not available!");
+              "Seems Based on last interaction content error: $e");
         }
       }
 
@@ -198,8 +190,18 @@ class HomeScreenController extends GetxController {
         }
       }
 
-      middleContent.value = _setContentList(middleContentTemp);
-      fixedContent.value = _setContentList(homeContentListMap);
+      final limit = Get.find<SettingsScreenController>().noOfHomeScreenContent.value;
+      final totalMiddle = _setContentList(middleContentTemp);
+      final totalFixed = _setContentList(homeContentListMap);
+      
+      final combined = [...totalMiddle, ...totalFixed];
+      if (combined.length > limit) {
+        middleContent.value = combined.sublist(0, limit);
+        fixedContent.value = [];
+      } else {
+        middleContent.value = totalMiddle;
+        fixedContent.value = totalFixed;
+      }
 
       isContentFetched.value = true;
 
@@ -220,20 +222,38 @@ class HomeScreenController extends GetxController {
   ) {
     List contentTemp = [];
     for (var content in contents) {
-      if((content["contents"]).isEmpty) continue;
-      if ((content["contents"][0]).runtimeType == Playlist) {
+      final subContents = content["contents"] as List<dynamic>? ?? [];
+      if (subContents.isEmpty) continue;
+      
+      final firstItem = subContents.first;
+      if (firstItem is Playlist) {
         final tmp = PlaylistContent(
-            playlistList: (content["contents"]).whereType<Playlist>().toList(),
-            title: content["title"]);
+            playlistList: subContents.whereType<Playlist>().toList(),
+            title: content["title"] ?? "Playlists");
         if (tmp.playlistList.isNotEmpty) {
           contentTemp.add(tmp);
         }
-      } else if ((content["contents"][0]).runtimeType == Album) {
+      } else if (firstItem is Album) {
         final tmp = AlbumContent(
-            albumList: (content["contents"]).whereType<Album>().toList(),
-            title: content["title"]);
+            albumList: subContents.whereType<Album>().toList(),
+            title: content["title"] ?? "Albums");
         if (tmp.albumList.isNotEmpty) {
           contentTemp.add(tmp);
+        }
+      } else if (firstItem is MediaItem) {
+        final playlists = subContents.whereType<MediaItem>().map((e) {
+          return Playlist(
+            title: e.title,
+            playlistId: e.extras?['playlistId'] ?? e.id,
+            thumbnailUrl: e.artUri?.toString() ?? Playlist.thumbPlaceholderUrl,
+            description: e.artist ?? "Playlist",
+          );
+        }).toList();
+        if (playlists.isNotEmpty) {
+          contentTemp.add(PlaylistContent(
+            playlistList: playlists,
+            title: content["title"] ?? "Recommended",
+          ));
         }
       }
     }
@@ -262,28 +282,109 @@ class HomeScreenController extends GetxController {
       }
     } else {
       songId ??= Hive.box("AppPrefs").get("recentSongId");
+      printINFO("BOLI: Fetching related content for songId: $songId");
       if (songId != null) {
         try {
           final value = await _musicServices.getContentRelatedToSong(
               songId, getContentHlCode());
-          middleContent.value = _setContentList(value);
-          if (value.isNotEmpty && (value[0]['title']).contains("like")) {
+          printINFO("BOLI: Received related content: ${value?.length} items");
+          if (value != null && value.isNotEmpty) {
+            final rel = List.from(value);
+            final firstSection = rel.removeAt(0);
             quickPicks_ =
-                QuickPicks(List<MediaItem>.from(value[0]["contents"]));
+                QuickPicks(List<MediaItem>.from(firstSection["contents"]), title: firstSection["title"] ?? "discover");
+            
+            final limit = Get.find<SettingsScreenController>().noOfHomeScreenContent.value;
+            final boliSections = _setContentList(rel);
+            
+            // If BOLI didn't return album sections, search artist albums for the current song
+            if (boliSections.whereType<AlbumContent>().isEmpty && quickPicks_.songList.isNotEmpty) {
+              try {
+                final artistName = quickPicks_.songList.first.artist?.split(',')[0].trim() ?? "";
+                if (artistName.isNotEmpty) {
+                  final albumSearch = await _musicServices.search(artistName, filter: "albums", limit: 10);
+                  if (albumSearch.containsKey("Albums") && (albumSearch["Albums"] as List).isNotEmpty) {
+                    boliSections.insert(0, AlbumContent(
+                      title: "$artistName Albums",
+                      albumList: List<Album>.from(albumSearch["Albums"]),
+                    ));
+                  }
+                }
+              } catch (e) {
+                printERROR("Error fetching artist albums for BOLI: $e");
+              }
+            }
+
+            // If BOLI related sections are fewer than limit, supplement with Home playlists
+            if (boliSections.length < limit) {
+              final homeContentListMap = await _musicServices.getHome(limit: limit);
+              final homeSections = _setContentList(homeContentListMap);
+              final combined = [...boliSections, ...homeSections];
+              middleContent.value = combined.take(limit).toList();
+            } else {
+              middleContent.value = boliSections.take(limit).toList();
+            }
+            fixedContent.value = [];
             Hive.box("AppPrefs").put("recentSongId", songId);
+          } else {
+            printERROR("BOLI: value is empty or null from getContentRelatedToSong");
           }
-          // ignore: empty_catches
-        } catch (e) {}
+        } catch (e, st) {
+          printERROR("BOLI Error: $e \n $st");
+        }
+      } else {
+        printERROR("BOLI: songId is NULL in AppPrefs!");
       }
     }
-    if (quickPicks_ == null) return;
+    if (quickPicks_ != null) {
+      quickPicks.value = quickPicks_;
+      cachedHomeScreenData(updateQuickPicksNMiddleContent: true);
+      await Hive.box("AppPrefs")
+          .put("homeScreenDataTime", DateTime.now().millisecondsSinceEpoch);
+    }
+  }
 
-    quickPicks.value = quickPicks_;
+  void updateHomeWithSearchResults(Map<String, dynamic> searchResult) {
+    try {
+      final List<dynamic> newSections = [];
+      if (searchResult.containsKey("Albums") && (searchResult["Albums"] as List).isNotEmpty) {
+        newSections.add({
+          "title": "Albums",
+          "contents": searchResult["Albums"],
+        });
+      }
+      if (searchResult.containsKey("Featured playlists") && (searchResult["Featured playlists"] as List).isNotEmpty) {
+        newSections.add({
+          "title": "Featured playlists",
+          "contents": searchResult["Featured playlists"],
+        });
+      }
+      if (searchResult.containsKey("Community playlists") && (searchResult["Community playlists"] as List).isNotEmpty) {
+        newSections.add({
+          "title": "Community playlists",
+          "contents": searchResult["Community playlists"],
+        });
+      }
 
-    // set home content last update time
-    cachedHomeScreenData(updateQuickPicksNMiddleContent: true);
-    await Hive.box("AppPrefs")
-        .put("homeScreenDataTime", DateTime.now().millisecondsSinceEpoch);
+      if (newSections.isNotEmpty) {
+        final limit = Get.find<SettingsScreenController>().noOfHomeScreenContent.value;
+        final formattedSections = _setContentList(newSections);
+        final currentSections = middleContent.toList();
+        
+        // Put the searched Albums & Playlists at the top of Home Screen
+        final List combined = [...formattedSections];
+        for (var sec in currentSections) {
+          if (!combined.any((e) => e.title == sec.title)) {
+            combined.add(sec);
+          }
+        }
+        middleContent.value = combined.take(limit).toList();
+        fixedContent.value = [];
+        cachedHomeScreenData(updateQuickPicksNMiddleContent: true);
+      }
+    } catch (e) {
+      printERROR("updateHomeWithSearchResults error: $e");
+    }
   }
 
   String getContentHlCode() {

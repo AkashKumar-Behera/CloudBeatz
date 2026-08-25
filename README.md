@@ -10,13 +10,16 @@ Hosted demo: 🌐 [https://cloudbeatz.web.app](https://cloudbeatz.web.app)
 
 ## 🚀 Features
 
-- Stream music directly from YouTube / YouTube Music  
-- Smart caching while playback  
+- Stream music directly from YouTube / YouTube Music with high-speed direct stream extraction
+- Smart Based On Last Interaction (BOLI) Home Discovery engine
+- Dynamic Home Screen Album recommendation based on real-time search & played artists
+- Smart caching and instant audio buffering (15-30s AndroidLoadControl)
 - Radio and background playback support  
 - Playlist creation & bookmarking  
 - Artist and Album bookmark support  
 - Import songs, playlists, albums, and artists via YouTube sharing  
-- Adjustable streaming quality  
+- Adjustable streaming quality (Low/High Opus & AAC)
+- Modern Player UI with wavy progress bar and gesture controls
 - Offline song downloading  
 - Multi-language support  
 - Skip silence feature  

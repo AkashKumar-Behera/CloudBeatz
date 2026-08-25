@@ -7,6 +7,7 @@ import 'package:get/get.dart' as getx;
 import 'package:hive/hive.dart';
 
 import '/models/album.dart';
+import '/models/playlist.dart';
 import '/services/utils.dart';
 import '../utils/helper.dart';
 import 'constant.dart';
@@ -327,14 +328,34 @@ class MusicServices extends getx.GetxService {
   }
 
   dynamic getContentRelatedToSong(String videoId, String hlCode) async {
-    final params = await getWatchPlaylist(videoId: videoId, onlyRelated: true);
-    final data = Map.from(_context);
-    data['browseId'] = params['related'];
-    data['context']['client']['hl'] = hlCode;
-    final response = (await _sendRequest('browse', data)).data;
-    final sections = nav(response, ['contents'] + section_list);
-    final x = parseMixedContent(sections);
-    return x;
+    try {
+      final params = await getWatchPlaylist(videoId: videoId, onlyRelated: false);
+      if (params['related'] != null && (params['related'] as String).isNotEmpty) {
+        final data = Map.from(_context);
+        data['browseId'] = params['related'];
+        data['context']['client']['hl'] = hlCode;
+        final response = (await _sendRequest('browse', data)).data;
+        final sections = nav(response, ['contents'] + section_list);
+        final x = parseMixedContent(sections);
+        if (x != null && x.isNotEmpty) {
+          return x;
+        }
+      }
+      
+      // Fallback: If YouTube doesn't return related browseId, use watch playlist tracks as "discover"
+      final tracks = params['tracks'] as List<dynamic>?;
+      if (tracks != null && tracks.isNotEmpty) {
+        return [
+          {
+            "title": "discover",
+            "contents": tracks,
+          }
+        ];
+      }
+    } catch (e) {
+      printERROR("getContentRelatedToSong error: $e");
+    }
+    return [];
   }
 
   dynamic getLyrics(String browseId) async {
@@ -696,13 +717,19 @@ class MusicServices extends getx.GetxService {
             ['artist', 'playlist', 'song', 'video', 'station'], shelfType, category);
         if (filter == null) {
           for (var item in mixedItems) {
-            final itemType = item.runtimeType == MediaItem
-                ? (item.artist.split(",")[0]) + "s"
-                : "${item.runtimeType}s";
-            if (searchResults.containsKey(itemType) &&
-                (searchResults[itemType]).length < 3) {
+            String itemType;
+            if (item is MediaItem) {
+              itemType = "Songs";
+            } else if (item is Album) {
+              itemType = "Albums";
+            } else if (item is Playlist) {
+              itemType = category.contains("Featured") ? "Featured playlists" : "Community playlists";
+            } else {
+              itemType = "${item.runtimeType}s";
+            }
+            if (searchResults.containsKey(itemType)) {
               (searchResults[itemType] as List).add(item);
-            } else if (!searchResults.containsKey(itemType)) {
+            } else {
               searchResults[itemType] = [item];
             }
           }

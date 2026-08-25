@@ -285,6 +285,10 @@ class PlayerController extends GetxController
         isCurrentSongBuffered.value = false;
         currentSong.value = mediaItem;
         Hive.box("AppPrefs").put("recentSongId", mediaItem.id);
+        if (Hive.box("AppPrefs").get("discoverContentType") == "BOLI") {
+          Get.find<HomeScreenController>()
+              .changeDiscoverContent("BOLI", songId: mediaItem.id);
+        }
         currentSongIndex.value = currentQueue
             .indexWhere((element) => element.id == currentSong.value!.id);
         await _checkFav();
@@ -318,8 +322,11 @@ class PlayerController extends GetxController
 
   void _listenForPlaylistChange() {
     _audioHandler.queue.listen((queue) {
-      currentQueue.value = queue;
-      currentQueue.refresh();
+      currentQueue.assignAll(queue);
+      if (currentSong.value != null) {
+        currentSongIndex.value =
+            currentQueue.indexWhere((element) => element.id == currentSong.value!.id);
+      }
     });
   }
 
