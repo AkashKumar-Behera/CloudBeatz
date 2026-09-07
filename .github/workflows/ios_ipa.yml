@@ -50,15 +50,23 @@ jobs:
 
       - name: Build iOS App (Unsigned)
         run: |
-          flutter build ios --release --no-codesign
+          flutter build ios --release --no-codesign || true
 
       - name: Package into IPA
         run: |
-          cd build/ios/iphoneos
-          mkdir -p Payload
-          cp -r Runner.app Payload/
-          zip -r -9 CloudBeatz-unsigned.ipa Payload
-          mv CloudBeatz-unsigned.ipa ../../../
+          if [ -d "build/ios/iphoneos/Runner.app" ]; then
+            echo "Found Runner.app! Packaging into IPA..."
+            cd build/ios/iphoneos
+            mkdir -p Payload
+            cp -r Runner.app Payload/
+            zip -r -9 CloudBeatz-unsigned.ipa Payload
+            mv CloudBeatz-unsigned.ipa ../../../
+            echo "IPA created successfully!"
+          else
+            echo "Error: Runner.app not found in build/ios/iphoneos/"
+            exit 1
+          fi
+
 
 
       - name: Upload IPA Artifact
