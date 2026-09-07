@@ -216,7 +216,18 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
       final currQueue = queue.value;
       if (currentIndex == null || currQueue.isEmpty || duration == null) return;
       final currentSong = queue.value[currentIndex];
-      if (currentSong.duration == null || currentIndex == 0) {
+      
+      // If currentSong already has a valid duration from metadata, do not let an erroneous 2x stream duration override it
+      if (currentSong.duration != null && currentSong.duration! > Duration.zero) {
+        // If stream duration is roughly double the metadata duration (known iOS AVPlayer bug), keep original metadata duration
+        final metaSec = currentSong.duration!.inSeconds;
+        final streamSec = duration.inSeconds;
+        if (streamSec > 0 && (streamSec >= metaSec * 1.8 && streamSec <= metaSec * 2.2)) {
+          return;
+        }
+      }
+
+      if (currentSong.duration == null || currentSong.duration == Duration.zero) {
         final newMediaItem = currentSong.copyWith(duration: duration);
         mediaItem.add(newMediaItem);
       }
@@ -266,6 +277,12 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
 
     return AudioSource.uri(
       Uri.parse(url),
+      headers: {
+        'User-Agent':
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+        'Accept': '*/*',
+        'Range': 'bytes=0-',
+      },
       tag: mediaItem,
     );
   }
