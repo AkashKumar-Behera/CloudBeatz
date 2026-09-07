@@ -371,12 +371,16 @@ class _TopHeader extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.keyboard_arrow_down, size: 30),
             color: Theme.of(context).textTheme.titleMedium!.color,
+            padding: const EdgeInsets.all(10),
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             onPressed: pc.playerPanelController.close,
           ),
           const Spacer(),
           IconButton(
             icon: const Icon(Icons.more_vert, size: 26),
             color: Theme.of(context).textTheme.titleMedium!.color,
+            padding: const EdgeInsets.all(10),
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             onPressed: () {
               if (pc.currentSong.value == null) return;
               showModalBottomSheet(
@@ -413,68 +417,77 @@ class _LyricsHeader extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.keyboard_arrow_down, size: 30),
             color: Theme.of(context).textTheme.titleMedium!.color,
+            padding: const EdgeInsets.all(10),
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             onPressed: pc.playerPanelController.close,
           ),
           const SizedBox(width: 4),
-          GestureDetector(
-            onTap: () => pc.showLyrics(),
-            child: Obx(() {
-              final song = pc.currentSong.value;
-              if (song == null) return const SizedBox.shrink();
-              return Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(50),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: ImageWidget(
-                    size: 48,
-                    song: song,
-                    isPlayerArtImage: false,
-                  ),
-                ),
-              );
-            }),
-          ),
-          const SizedBox(width: 12),
           Expanded(
-            child: Obx(() {
-              final song = pc.currentSong.value;
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => pc.showLyrics(),
+              child: Row(
                 children: [
-                  Text(
-                    song?.title ?? "—",
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium!
-                        .copyWith(fontWeight: FontWeight.w800, fontSize: 16),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    song?.artist ?? "—",
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall!
-                        .copyWith(fontWeight: FontWeight.w500, fontSize: 12, color: Colors.white70),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Obx(() {
+                    final song = pc.currentSong.value;
+                    if (song == null) return const SizedBox.shrink();
+                    return Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(50),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: ImageWidget(
+                          size: 48,
+                          song: song,
+                          isPlayerArtImage: false,
+                        ),
+                      ),
+                    );
+                  }),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Obx(() {
+                      final song = pc.currentSong.value;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            song?.title ?? "—",
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium!
+                                .copyWith(fontWeight: FontWeight.w800, fontSize: 16),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            song?.artist ?? "—",
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall!
+                                .copyWith(fontWeight: FontWeight.w500, fontSize: 12, color: Colors.white70),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      );
+                    }),
                   ),
                 ],
-              );
-            }),
+              ),
+            ),
           ),
           _LyricsMenuButton(pc: pc),
         ],
@@ -581,7 +594,9 @@ class _LyricsMenuButton extends StatelessWidget {
       final mode = pc.lyricsMode.value;
       return PopupMenuButton<String>(
         icon: const Icon(Icons.more_horiz_rounded,
-            color: Colors.white70, size: 22),
+            color: Colors.white70, size: 24),
+        padding: const EdgeInsets.all(10),
+        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
         color: Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         itemBuilder: (_) => [

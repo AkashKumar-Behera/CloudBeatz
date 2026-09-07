@@ -185,9 +185,19 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
             ? 700
             : 0;
     _player.positionStream.listen((value) async {
-      if (_player.duration != null && _player.duration?.inSeconds != 0) {
+      Duration? targetDuration = mediaItem.value?.duration;
+      if (targetDuration == null || targetDuration <= Duration.zero) {
+        targetDuration = _player.duration;
+      } else if (_player.duration != null && _player.duration! > Duration.zero) {
+        // If player reports duration, prefer the smaller valid duration if stream duration is ~2x metadata duration
+        if (_player.duration! < targetDuration) {
+          targetDuration = _player.duration;
+        }
+      }
+
+      if (targetDuration != null && targetDuration.inSeconds > 0) {
         if (value.inMilliseconds >=
-            (_player.duration!.inMilliseconds - playerDurationOffset)) {
+            (targetDuration.inMilliseconds - playerDurationOffset)) {
           await _triggerNext();
         }
       }

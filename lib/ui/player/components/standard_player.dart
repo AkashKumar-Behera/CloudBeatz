@@ -133,7 +133,7 @@ class StandardPlayer extends StatelessWidget {
           Obx(() => playerController.showLyricsflag.isFalse
               ? Padding(
                   padding: EdgeInsets.only(
-                      top: Get.mediaQuery.padding.top + 20,
+                      top: Get.mediaQuery.padding.top + 10,
                       left: 10,
                       right: 10),
                   child: Row(
@@ -143,12 +143,16 @@ class StandardPlayer extends StatelessWidget {
                       IconButton(
                         icon:
                             const Icon(Icons.keyboard_arrow_down, size: 28),
+                        padding: const EdgeInsets.all(10),
+                        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                         onPressed:
                             playerController.playerPanelController.close,
                       ),
                       const Spacer(),
                       IconButton(
                         icon: const Icon(Icons.more_vert, size: 25),
+                        padding: const EdgeInsets.all(10),
+                        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                         onPressed: () {
                           showModalBottomSheet(
                             constraints:
@@ -197,9 +201,11 @@ class _StandardNormalLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final topPad = Get.mediaQuery.padding.top;
+    final bottomPad = Get.mediaQuery.padding.bottom;
     return Column(
       children: [
-        SizedBox(height: size.height < 750 ? 110 : 140),
+        SizedBox(height: topPad + 60),
 
         Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -214,10 +220,9 @@ class _StandardNormalLayout extends StatelessWidget {
 
         const Expanded(child: SizedBox()),
 
-
         Padding(
           padding: EdgeInsets.only(
-              bottom: 80 + Get.mediaQuery.padding.bottom),
+              bottom: 60 + bottomPad),
           child: Container(
             constraints: const BoxConstraints(maxWidth: 500),
             child: const PlayerControlWidget(),
@@ -308,77 +313,84 @@ class _StdLyricsHeader extends StatelessWidget {
               size: 28,
               color: Theme.of(context).textTheme.titleMedium!.color,
             ),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             onPressed: pc.playerPanelController.close,
           ),
 
-          const SizedBox(width: 6),
+          const SizedBox(width: 4),
 
-          // Small 44px thumbnail — tap to return to normal layout
-          GestureDetector(
-            onTap: () => pc.showLyrics(),
-            child: Obx(() {
-              final song = pc.currentSong.value;
-              if (song == null) return const SizedBox(width: 44, height: 44);
-              return Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(60),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: ImageWidget(
-                    size: 44,
-                    song: song,
-                    isPlayerArtImage: false,
-                  ),
-                ),
-              );
-            }),
-          ),
-
-          const SizedBox(width: 10),
-
-          // Song title + artist
+          // Tap thumbnail OR title to return to normal layout
           Expanded(
-            child: Obx(() {
-              final song = pc.currentSong.value;
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => pc.showLyrics(),
+              child: Row(
                 children: [
-                  Text(
-                    song?.title ?? '—',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium!
-                        .copyWith(fontWeight: FontWeight.w700, fontSize: 15),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 1),
-                  Text(
-                    song?.artist ?? '—',
-                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 12,
-                          color: Colors.white60,
+                  Obx(() {
+                    final song = pc.currentSong.value;
+                    if (song == null) return const SizedBox(width: 44, height: 44);
+                    return Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(60),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: ImageWidget(
+                          size: 44,
+                          song: song,
+                          isPlayerArtImage: false,
                         ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }),
+
+                  const SizedBox(width: 10),
+
+                  // Song title + artist
+                  Expanded(
+                    child: Obx(() {
+                      final song = pc.currentSong.value;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            song?.title ?? '—',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium!
+                                .copyWith(fontWeight: FontWeight.w700, fontSize: 15),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            song?.artist ?? '—',
+                            style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 12,
+                                  color: Colors.white60,
+                                ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      );
+                    }),
                   ),
                 ],
-              );
-            }),
+              ),
+            ),
           ),
 
           // Three-dots lyrics menu
@@ -435,7 +447,9 @@ class _StdLyricsMenuButton extends StatelessWidget {
       final mode = pc.lyricsMode.value;
       return PopupMenuButton<String>(
         icon: const Icon(Icons.more_horiz_rounded,
-            color: Colors.white70, size: 22),
+            color: Colors.white70, size: 24),
+        padding: const EdgeInsets.all(10),
+        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
         color: Theme.of(context).cardColor,
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
