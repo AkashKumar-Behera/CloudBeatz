@@ -68,25 +68,12 @@ jobs:
 
       - name: Build iOS App (Unsigned)
         run: |
-          flutter build ios --config-only --no-codesign
-          xcodebuild -workspace ios/Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -destination "generic/platform=iOS" \
-            -derivedDataPath build/ios_derived \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            build
-
-
+          flutter build ios --release --no-codesign
 
       - name: Package into IPA
         run: |
           APP_PATH=""
-          if [ -d "build/ios_derived/Build/Products/Release-iphoneos/Runner.app" ]; then
-            APP_PATH="build/ios_derived/Build/Products/Release-iphoneos/Runner.app"
-          elif [ -d "build/ios/iphoneos/Runner.app" ]; then
+          if [ -d "build/ios/iphoneos/Runner.app" ]; then
             APP_PATH="build/ios/iphoneos/Runner.app"
           else
             APP_PATH=$(find build -name "Runner.app" -type d | grep "iphoneos" | head -n 1)
@@ -102,6 +89,7 @@ jobs:
             echo "Error: Device Runner.app not found!"
             exit 1
           fi
+
 
 
 
