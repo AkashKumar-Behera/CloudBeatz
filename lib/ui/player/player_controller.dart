@@ -266,8 +266,15 @@ class PlayerController extends GetxController
   void _listenForChangesInDuration() {
     _audioHandler.mediaItem.listen((mediaItem) async {
       final oldState = progressBarStatus.value;
+      Duration songDur = mediaItem?.duration ?? Duration.zero;
+      if (songDur == Duration.zero && mediaItem?.extras?['length'] != null) {
+        final parsedDur = MediaItemBuilder.toDuration(mediaItem!.extras!['length']);
+        if (parsedDur != null && parsedDur > Duration.zero) {
+          songDur = parsedDur;
+        }
+      }
       progressBarStatus.update((val) {
-        val!.total = mediaItem?.duration ?? Duration.zero;
+        val!.total = songDur;
         val.current = oldState.current;
         val.buffered = oldState.buffered;
       });

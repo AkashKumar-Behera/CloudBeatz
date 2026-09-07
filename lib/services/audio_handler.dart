@@ -225,8 +225,9 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
   void _listenForDurationChanges() {
     _player.durationStream.listen((duration) async {
       final currQueue = queue.value;
-      if (currentIndex == null || currQueue.isEmpty || duration == null) return;
-      final currentSong = queue.value[currentIndex];
+      if (currentIndex == null || currQueue.isEmpty || duration == null || duration <= Duration.zero) return;
+      if (currentIndex < 0 || currentIndex >= currQueue.length) return;
+      final currentSong = currQueue[currentIndex];
       
       // If currentSong already has a valid duration from metadata, do not let an erroneous 2x stream duration override it
       if (currentSong.duration != null && currentSong.duration! > Duration.zero) {
@@ -240,6 +241,8 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
 
       if (currentSong.duration == null || currentSong.duration == Duration.zero) {
         final newMediaItem = currentSong.copyWith(duration: duration);
+        currQueue[currentIndex] = newMediaItem;
+        queue.add(List.from(currQueue));
         mediaItem.add(newMediaItem);
       }
     });
@@ -597,6 +600,21 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
           return;
         }
         isSongLoading = false;
+
+        // Immediately apply duration from player if current item has no duration
+        final playerDur = _player.duration;
+        if (playerDur != null && playerDur > Duration.zero) {
+          final curItem = mediaItem.value ?? currMed;
+          if (curItem.duration == null || curItem.duration == Duration.zero) {
+            final updatedMed = curItem.copyWith(duration: playerDur);
+            final updatedQueue = queue.value;
+            if (currentIndex != null && currentIndex >= 0 && currentIndex < updatedQueue.length) {
+              updatedQueue[currentIndex] = updatedMed;
+              queue.add(List.from(updatedQueue));
+            }
+            mediaItem.add(updatedMed);
+          }
+        }
 
         // Normalize audio
         if (loudnessNormalizationEnabled && GetPlatform.isAndroid) {

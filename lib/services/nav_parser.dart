@@ -836,6 +836,36 @@ dynamic parseSearchResult(Map<String, dynamic> data,
     final runs = (flexItem['text']['runs']);
     final songInfo = parseSongRuns(runs);
     searchResult.addAll(songInfo);
+
+    // If length wasn't found in flexColumn 1, check fixedColumns or additional flexColumns
+    if (searchResult['length'] == null && (resultType == 'song' || resultType == 'video')) {
+      if (data.containsKey('fixedColumns')) {
+        final fixedCol = getFixedColumnItem(data, 0);
+        if (fixedCol != null && fixedCol.containsKey('text')) {
+          if (fixedCol['text'].containsKey('simpleText')) {
+            searchResult['length'] = fixedCol['text']['simpleText'];
+          } else if (fixedCol['text'].containsKey('runs') && (fixedCol['text']['runs'] as List).isNotEmpty) {
+            searchResult['length'] = fixedCol['text']['runs'][0]['text'];
+          }
+        }
+      }
+      if (searchResult['length'] == null && data.containsKey('flexColumns')) {
+        final flexCols = data['flexColumns'] as List?;
+        if (flexCols != null && flexCols.length > 2) {
+          for (int i = 2; i < flexCols.length; i++) {
+            final col = getFlexColumnItem(data, i);
+            if (col.isNotEmpty && col.containsKey('text') && col['text'].containsKey('runs')) {
+              final colRuns = col['text']['runs'] as List;
+              final colInfo = parseSongRuns(colRuns);
+              if (colInfo['length'] != null) {
+                searchResult['length'] = colInfo['length'];
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   if ((['artist', 'album', 'playlist']).contains(resultType)) {
