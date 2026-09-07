@@ -34,7 +34,19 @@ jobs:
 
       - name: Patch terminate_restart for modern Flutter
         run: |
-          find "$HOME/.pub-cache" -name "TerminateRestartPlugin.swift" -exec sed -i '' 's/if let engine = flutterViewController\.engine/let engine = flutterViewController.engine; if true/g' {} +
+          python3 -c '
+          import glob
+          files = glob.glob("/Users/runner/.pub-cache/**/TerminateRestartPlugin.swift", recursive=True)
+          for f in files:
+              with open(f, "r") as file:
+                  content = file.read()
+              if "guard let flutterEngine = flutterViewController.engine" in content:
+                  content = content.replace("guard let flutterEngine = flutterViewController.engine else {\n                print(\" [TerminateRestart] Error: No Flutter engine found\")\n                return\n            }", "let flutterEngine = flutterViewController.engine")
+                  content = content.replace("guard let flutterEngine = flutterViewController.engine else {", "let flutterEngine = flutterViewController.engine; if false {")
+                  with open(f, "w") as file:
+                      file.write(content)
+                  print("Patched:", f)
+          '
 
       - name: Build iOS App (Unsigned)
         run: |
