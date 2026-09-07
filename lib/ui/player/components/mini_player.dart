@@ -35,8 +35,8 @@ class MiniPlayer extends StatelessWidget {
             height: playerController.playerPanelMinHeight.value,
             width: size.width,
             color: Theme.of(context).brightness == Brightness.dark
-                ? (Theme.of(context).bottomSheetTheme.backgroundColor ?? const Color(0xFF18161E))
-                : Theme.of(context).bottomSheetTheme.backgroundColor,
+                ? (Theme.of(context).bottomSheetTheme.backgroundColor ?? const Color(0xFF141218))
+                : (Theme.of(context).bottomSheetTheme.backgroundColor ?? const Color(0xFF1E1C24)),
             child: Center(
               child: Column(
                 children: [

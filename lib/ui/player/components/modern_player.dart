@@ -52,7 +52,7 @@ class ModernPlayer extends StatelessWidget {
         BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 42.0, sigmaY: 42.0),
           child: Container(
-            color: Theme.of(context).primaryColor.withAlpha(200),
+            color: Colors.black.withOpacity(0.68),
           ),
         ),
 
@@ -64,7 +64,7 @@ class ModernPlayer extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Theme.of(context).primaryColor,
+                  Colors.black.withOpacity(0.85),
                   Colors.transparent,
                 ],
                 begin: Alignment.bottomCenter,
