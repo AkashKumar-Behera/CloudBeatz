@@ -1,0 +1,56 @@
+name: Build Unsigned iOS IPA
+
+on:
+  workflow_dispatch: # Manual trigger so it doesn't consume minutes on every push
+
+jobs:
+  build-ipa:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: '3.24.2'
+          cache: true
+
+      - name: Update Lang Data
+        run: dart localization/generator.dart
+
+      - name: Set update check flag
+        run: |
+          mkdir -p lib/utils
+          echo "const updateCheckFlag = true;" > lib/utils/update_check_flag_file.dart
+
+      - name: Install Flutter Dependencies
+        run: flutter pub get
+
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod repo update
+          pod install
+          cd ..
+
+      - name: Build iOS App (Unsigned)
+        run: |
+          flutter build ios --release --no-codesign
+
+      - name: Package into IPA
+        run: |
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -r -9 CloudBeatz-unsigned.ipa Payload
+          mv CloudBeatz-unsigned.ipa ../../../
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CloudBeatz-Unsigned-IPA
+          path: CloudBeatz-unsigned.ipa
+          retention-days: 14
