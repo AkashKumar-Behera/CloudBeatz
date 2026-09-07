@@ -60,11 +60,24 @@ jobs:
                   print("Patched:", f)
           '
 
+      - name: Download audiotags native binaries
+        run: |
+          for dir in $(find "$HOME/.pub-cache" -path "*/audiotags*/ios" -type d); do
+            echo "Pre-fetching native binaries for $dir"
+            mkdir -p "$dir/Frameworks"
+            cd "$dir/Frameworks"
+            curl -fL "https://github.com/erikas-taroza/audiotags/releases/download/v1.4.2/ios.zip" -o ios.zip || \
+            curl -fL "https://github.com/erikas-taroza/audiotags/releases/download/v1.4.1/ios.zip" -o ios.zip
+            unzip -qo ios.zip -d audiotags.xcframework || true
+            cd -
+          done
+
       - name: Install CocoaPods
         run: |
           cd ios
           pod install
           cd ..
+
 
       - name: Build iOS App (Unsigned)
         run: |
