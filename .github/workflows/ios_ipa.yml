@@ -50,22 +50,15 @@ jobs:
 
       - name: Build iOS App (Unsigned)
         run: |
-          flutter build ios --config-only
-          xcodebuild -workspace ios/Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -destination "generic/platform=iOS" \
-            -derivedDataPath build/ios_build \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            build
+          flutter build ios --release --no-codesign
 
       - name: Package into IPA
         run: |
+          cd build/ios/iphoneos
           mkdir -p Payload
-          cp -r build/ios_build/Build/Products/Release-iphoneos/Runner.app Payload/
+          cp -r Runner.app Payload/
           zip -r -9 CloudBeatz-unsigned.ipa Payload
+          mv CloudBeatz-unsigned.ipa ../../../
 
 
       - name: Upload IPA Artifact
