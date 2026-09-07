@@ -32,6 +32,25 @@ jobs:
           mkdir -p lib/utils
           echo "const updateCheckFlag = true;" > lib/utils/update_check_flag_file.dart
 
+      - name: Generate Dummy Firebase Config if missing
+        run: |
+          mkdir -p lib/services
+          if [ ! -f "lib/services/firebase_config.dart" ]; then
+            cat << 'EOF' > lib/services/firebase_config.dart
+import 'package:firebase_core/firebase_core.dart';
+
+class FirebaseConfig {
+  static FirebaseOptions get currentPlatform => const FirebaseOptions(
+    apiKey: 'dummy_api_key',
+    appId: '1:1234567890:ios:abcdef123456',
+    messagingSenderId: '1234567890',
+    projectId: 'dummy-project',
+  );
+}
+EOF
+            echo "Created dummy firebase_config.dart for CI"
+          fi
+
       - name: Patch terminate_restart for modern Flutter
         run: |
           python3 -c '
@@ -50,10 +69,6 @@ jobs:
 
       - name: Build iOS App (Unsigned)
         run: |
-          # 1. Compile Flutter Dart bundle and plugins without team restriction
-          flutter build ios --simulator --no-codesign
-
-          # 2. Build real device ARM64 binary with xcodebuild directly (bypasses Flutter CLI team check)
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
@@ -63,6 +78,7 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             build
+
 
       - name: Package into IPA
         run: |
