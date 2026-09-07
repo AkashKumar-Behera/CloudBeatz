@@ -35,21 +35,14 @@ jobs:
       - name: Generate Dummy Firebase Config if missing
         run: |
           mkdir -p lib/services
-          if [ ! -f "lib/services/firebase_config.dart" ]; then
-            cat << 'EOF' > lib/services/firebase_config.dart
-import 'package:firebase_core/firebase_core.dart';
+          python3 -c "
+          import os
+          if not os.path.exists('lib/services/firebase_config.dart'):
+              with open('lib/services/firebase_config.dart', 'w') as f:
+                  f.write('''import \"package:firebase_core/firebase_core.dart\";\n\nclass FirebaseConfig {\n  static FirebaseOptions get currentPlatform => const FirebaseOptions(\n    apiKey: \"dummy_api_key\",\n    appId: \"1:1234567890:ios:abcdef123456\",\n    messagingSenderId: \"1234567890\",\n    projectId: \"dummy-project\",\n  );\n}\n''')
+              print('Created dummy firebase_config.dart')
+          "
 
-class FirebaseConfig {
-  static FirebaseOptions get currentPlatform => const FirebaseOptions(
-    apiKey: 'dummy_api_key',
-    appId: '1:1234567890:ios:abcdef123456',
-    messagingSenderId: '1234567890',
-    projectId: 'dummy-project',
-  );
-}
-EOF
-            echo "Created dummy firebase_config.dart for CI"
-          fi
 
       - name: Patch terminate_restart for modern Flutter
         run: |
