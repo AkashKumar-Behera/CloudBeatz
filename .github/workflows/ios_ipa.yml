@@ -21,6 +21,9 @@ jobs:
       - name: Disable Swift Package Manager (use CocoaPods)
         run: flutter config --no-enable-swift-package-manager
 
+      - name: Install Flutter Dependencies
+        run: flutter pub get
+
       - name: Update Lang Data
         run: dart localization/generator.dart
 
@@ -28,9 +31,6 @@ jobs:
         run: |
           mkdir -p lib/utils
           echo "const updateCheckFlag = true;" > lib/utils/update_check_flag_file.dart
-
-      - name: Install Flutter Dependencies
-        run: flutter pub get
 
       - name: Patch terminate_restart for modern Flutter
         run: |
@@ -48,34 +48,19 @@ jobs:
                   print("Patched:", f)
           '
 
-      - name: Build iOS Archive (Unsigned)
+      - name: Build iOS App (Unsigned)
         run: |
-          # Prepare Flutter assets and plugin bindings
-          flutter build ios --release --no-codesign --config-only || true
-          
-          # Archive directly with Xcode to an explicit directory
-          xcodebuild -workspace ios/Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -destination "generic/platform=iOS" \
-            -archivePath "$PWD/build/Runner.xcarchive" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            archive
+          flutter build ios --release --no-codesign
 
       - name: Package into IPA
         run: |
           APP_PATH=""
-          if [ -d "build/Runner.xcarchive/Products/Applications/Runner.app" ]; then
-            APP_PATH="build/Runner.xcarchive/Products/Applications/Runner.app"
+          if [ -d "build/ios/iphoneos/Runner.app" ]; then
+            APP_PATH="build/ios/iphoneos/Runner.app"
           else
-            APP_PATH=$(find "$HOME/Library/Developer/Xcode/Archives" -name "Runner.app" -type d 2>/dev/null | head -n 1)
-          fi
-
-          if [ -z "$APP_PATH" ]; then
             APP_PATH=$(find build -name "Runner.app" -type d | head -n 1)
           fi
+
 
           if [ -n "$APP_PATH" ] && [ -d "$APP_PATH" ]; then
             echo "Packaging Runner.app from: $APP_PATH"
