@@ -71,21 +71,212 @@ class ModernPlayer extends StatelessWidget {
           ),
         ),
 
-        // ── Main column ────────────────────────────────────────────────────
+        // ── Main content ───────────────────────────────────────────────────
         SafeArea(
           bottom: false,
           child: Obx(() {
             final showLyrics = pc.showLyricsflag.value;
+            final isLandscape = context.isLandscape;
+
             return AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
               transitionBuilder: (Widget child, Animation<double> animation) {
                 return FadeTransition(opacity: animation, child: child);
               },
-              child: showLyrics
-                  ? _buildLyricsLayout(context, pc, sc, bottomPad)
-                  : _buildNormalLayout(context, pc, sc, bottomPad, artSize),
+              child: isLandscape
+                  ? _buildLandscapeLayout(context, pc, sc, bottomPad, size, showLyrics)
+                  : (showLyrics
+                      ? _buildLyricsLayout(context, pc, sc, bottomPad)
+                      : _buildNormalLayout(context, pc, sc, bottomPad, artSize)),
             );
           }),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLandscapeLayout(
+    BuildContext context,
+    PlayerController pc,
+    SettingsScreenController sc,
+    double bottomPad,
+    Size size,
+    bool showLyrics,
+  ) {
+    final double landArtSize = (size.height - 100).clamp(160.0, 310.0);
+
+    return Column(
+      key: ValueKey("landscape_layout_$showLyrics"),
+      children: [
+        // Minimal top header in landscape
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.keyboard_arrow_down, size: 28),
+                color: Theme.of(context).textTheme.titleMedium!.color,
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                onPressed: pc.playerPanelController.close,
+              ),
+              if (showLyrics) ...[
+                Text(
+                  pc.currentSong.value?.title ?? "",
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                _LyricsMenuButton(pc: pc),
+              ] else
+                IconButton(
+                  icon: const Icon(Icons.more_vert, size: 24),
+                  color: Theme.of(context).textTheme.titleMedium!.color,
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                  onPressed: () {
+                    if (pc.currentSong.value == null) return;
+                    showModalBottomSheet(
+                      constraints: const BoxConstraints(maxWidth: 500),
+                      shape: const RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(10.0))),
+                      isScrollControlled: true,
+                      context: pc.homeScaffoldkey.currentState!.context,
+                      barrierColor: Colors.transparent.withAlpha(100),
+                      builder: (context) => SongInfoBottomSheet(
+                        pc.currentSong.value!,
+                        calledFromPlayer: true,
+                      ),
+                    ).whenComplete(() => Get.delete<SongInfoController>());
+                  },
+                ),
+            ],
+          ),
+        ),
+
+        // Split view: Left = Thumbnail Card / Lyrics, Right = Modern Controls
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // LEFT SIDE: Artwork (or Lyrics if active)
+                Expanded(
+                  flex: 5,
+                  child: Center(
+                    child: showLyrics
+                        ? Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const LyricsWidget(
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            ),
+                          )
+                        : Obx(() {
+                            final song = pc.currentSong.value;
+                            if (song == null) return const SizedBox.shrink();
+                            return _ArtworkCard(
+                              song: song,
+                              artSize: landArtSize,
+                              pc: pc,
+                            );
+                          }),
+                  ),
+                ),
+
+                const SizedBox(width: 24),
+
+                // RIGHT SIDE: Modern Controls (Title, Artist, Progress, Pill play, Dock)
+                Expanded(
+                  flex: 6,
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Song Title & Artist
+                        Obx(() {
+                          final song = pc.currentSong.value;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Marquee(
+                                delay: const Duration(milliseconds: 400),
+                                duration: const Duration(seconds: 12),
+                                id: "${song?.id}_modern_land_title",
+                                child: Text(
+                                  song?.title ?? "—",
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleLarge!
+                                      .copyWith(fontWeight: FontWeight.w800, fontSize: 18),
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                song?.artist ?? "—",
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium!
+                                    .copyWith(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 13,
+                                      color: Colors.white70,
+                                    ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          );
+                        }),
+
+                        const SizedBox(height: 14),
+
+                        // Squiggly Progress Bar
+                        _SquigglyProgressBar(pc: pc, sc: sc),
+
+                        const SizedBox(height: 12),
+
+                        // Controls Row: Prev, Pill Play/Pause, Next
+                        Row(
+                          children: [
+                            _CircularSkipButton(
+                              icon: Icons.skip_previous_rounded,
+                              onTap: () => pc.prev(),
+                              pc: pc,
+                              size: 48,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: _PillPlayPauseButton(pc: pc)),
+                            const SizedBox(width: 12),
+                            _CircularSkipButton(
+                              icon: Icons.skip_next_rounded,
+                              onTap: () => pc.next(),
+                              pc: pc,
+                              size: 48,
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        // Floating bottom dock (Loop, Shuffle, Fav, Queue)
+                        _buildBottomDock(context, pc, 0, isLandscape: true),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
@@ -282,16 +473,16 @@ class ModernPlayer extends StatelessWidget {
   }
 
 
-  Widget _buildBottomDock(BuildContext context, PlayerController pc, double bottomPad) {
+  Widget _buildBottomDock(BuildContext context, PlayerController pc, double bottomPad, {bool isLandscape = false}) {
     return Padding(
       padding: EdgeInsets.only(
-        left: 28,
-        right: 28,
-        bottom: bottomPad > 0 ? bottomPad + 18 : 28,
+        left: isLandscape ? 0 : 28,
+        right: isLandscape ? 0 : 28,
+        bottom: isLandscape ? 8 : (bottomPad > 0 ? bottomPad + 18 : 28),
       ),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 380),
+          constraints: BoxConstraints(maxWidth: isLandscape ? 340 : 380),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(100),
             child: BackdropFilter(

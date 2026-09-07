@@ -90,18 +90,22 @@ class Player extends StatelessWidget {
                   alignment: Alignment.bottomCenter,
                   child: ClipRRect(
                     child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                       child: Container(
-                        padding: const EdgeInsets.only(
-                            top: 15, bottom: 10, left: 10, right: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
-                            boxShadow: const [
-                              BoxShadow(blurRadius: 5, color: Colors.black54)
-                            ],
-                            color: Theme.of(context)
-                                .primaryColor
-                                .withOpacity(0.5)),
-                        height: 60 + Get.mediaQuery.padding.bottom,
+                          boxShadow: const [
+                            BoxShadow(blurRadius: 10, color: Colors.black45, offset: Offset(0, -2))
+                          ],
+                          color: Theme.of(context).cardColor.withOpacity(0.85),
+                          border: Border(
+                            top: BorderSide(
+                              color: Colors.white.withOpacity(0.08),
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        height: 64 + Get.mediaQuery.padding.bottom,
                         child: Align(
                           alignment: Alignment.topCenter,
                           child: Row(
@@ -109,43 +113,69 @@ class Player extends StatelessWidget {
                             children: [
                               /// number of songs in queue
                               Obx(
-                                () => Text(
-                                  "${playerController.currentQueue.length} ${"songs".tr}",
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleSmall!
-                                      .copyWith(
-                                          color: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium!
-                                              .color),
+                                () => Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.06),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Text(
+                                    "${playerController.currentQueue.length} ${"songs".tr}",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleSmall!
+                                        .copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium!
+                                                .color),
+                                  ),
                                 ),
                               ),
 
                               /// queue loop button
                               InkWell(
+                                borderRadius: BorderRadius.circular(20),
                                 onTap: () {
                                   playerController.toggleQueueLoopMode();
                                 },
                                 child: Obx(
-                                  () => Container(
-                                    height: 30,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 15),
-                                    decoration: BoxDecoration(
-                                      color: playerController
-                                              .isQueueLoopModeEnabled.isFalse
-                                          ? Colors.white24
-                                          : Colors.white.withOpacity(0.8),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Center(child: Text("queueLoop".tr)),
-                                  ),
+                                  () {
+                                    final isEnabled = playerController.isQueueLoopModeEnabled.value;
+                                    return AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      height: 36,
+                                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                                      decoration: BoxDecoration(
+                                        color: isEnabled
+                                            ? Theme.of(context).colorScheme.primary
+                                            : Colors.white.withOpacity(0.08),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: isEnabled
+                                              ? Colors.transparent
+                                              : Colors.white.withOpacity(0.12),
+                                        ),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          "queueLoop".tr,
+                                          style: TextStyle(
+                                            color: isEnabled ? Colors.white : Colors.white70,
+                                            fontSize: 13,
+                                            fontWeight: isEnabled ? FontWeight.bold : FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
 
                               /// queue shuffle button
                               InkWell(
+                                borderRadius: BorderRadius.circular(20),
                                 onTap: () {
                                   if (playerController
                                       .isShuffleModeEnabled.isTrue) {
@@ -158,35 +188,40 @@ class Player extends StatelessWidget {
                                   playerController.shuffleQueue();
                                 },
                                 child: Container(
-                                  height: 30,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 15),
+                                  height: 36,
+                                  width: 36,
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.8),
-                                    borderRadius: BorderRadius.circular(20),
+                                    color: Colors.white.withOpacity(0.1),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.12),
+                                    ),
                                   ),
                                   child: const Center(
-                                      child: Icon(Icons.shuffle,
-                                          color: Colors.black)),
+                                      child: Icon(Icons.shuffle_rounded,
+                                          color: Colors.white, size: 20)),
                                 ),
                               ),
 
                               /// clear queue button
                               InkWell(
+                                borderRadius: BorderRadius.circular(20),
                                 onTap: () {
                                   playerController.clearQueue();
                                 },
                                 child: Container(
-                                  height: 30,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 15),
+                                  height: 36,
+                                  width: 36,
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.8),
-                                    borderRadius: BorderRadius.circular(20),
+                                    color: Colors.white.withOpacity(0.1),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.12),
+                                    ),
                                   ),
                                   child: const Center(
-                                      child: Icon(Icons.playlist_remove,
-                                          color: Colors.black)),
+                                      child: Icon(Icons.playlist_remove_rounded,
+                                          color: Colors.white, size: 20)),
                                 ),
                               ),
                             ],
