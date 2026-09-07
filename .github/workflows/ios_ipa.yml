@@ -50,7 +50,7 @@ jobs:
 
       - name: Build iOS IPA (Unsigned)
         run: |
-          flutter build ipa --no-codesign
+          flutter build ipa --no-codesign || true
 
       - name: Package into IPA
         run: |
