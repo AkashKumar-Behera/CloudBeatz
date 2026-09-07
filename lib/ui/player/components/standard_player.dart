@@ -50,12 +50,12 @@ class StandardPlayer extends StatelessWidget {
 
         /// Blur + tint overlay
         BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+          filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
           child: Stack(
             children: [
               Positioned.fill(
                 child: Container(
-                  color: Theme.of(context).primaryColor.withAlpha(204),
+                  color: Colors.black.withOpacity(0.65),
                 ),
               ),
               Align(
@@ -65,14 +65,13 @@ class StandardPlayer extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Theme.of(context).primaryColor,
-                        Theme.of(context).primaryColor,
-                        Theme.of(context).primaryColor.withAlpha(102),
+                        Colors.black.withOpacity(0.9),
+                        Colors.black.withOpacity(0.6),
                         Colors.transparent,
                       ],
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
-                      stops: const [0, 0.5, 0.8, 1],
+                      stops: const [0, 0.6, 1],
                     ),
                   ),
                 ),

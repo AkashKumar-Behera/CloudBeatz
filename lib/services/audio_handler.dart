@@ -281,7 +281,6 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
         'User-Agent':
             'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
         'Accept': '*/*',
-        'Range': 'bytes=0-',
       },
       tag: mediaItem,
     );
@@ -478,7 +477,17 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
             .add(playbackState.value.copyWith(queueIndex: currentIndex));
         
         final source = _createAudioSource(currentSong);
-        await _player.setAudioSource(source);
+        try {
+          await _player.setAudioSource(source);
+        } catch (e, st) {
+          printERROR("Failed to setAudioSource: $e\n$st");
+          isSongLoading = false;
+          Get.find<PlayerController>().notifyPlayError(e.toString());
+          playbackState.add(playbackState.value.copyWith(
+              processingState: AudioProcessingState.error,
+              errorMessage: e.toString()));
+          return;
+        }
 
         isSongLoading = false;
         if (loudnessNormalizationEnabled && GetPlatform.isAndroid) {
@@ -564,7 +573,17 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
         playbackState.add(playbackState.value.copyWith(queueIndex: currentIndex));
 
         final source = _createAudioSource(currMed);
-        await _player.setAudioSource(source);
+        try {
+          await _player.setAudioSource(source);
+        } catch (e, st) {
+          printERROR("Failed to setAudioSource: $e\n$st");
+          isSongLoading = false;
+          Get.find<PlayerController>().notifyPlayError(e.toString());
+          playbackState.add(playbackState.value.copyWith(
+              processingState: AudioProcessingState.error,
+              errorMessage: e.toString()));
+          return;
+        }
         isSongLoading = false;
 
         // Normalize audio

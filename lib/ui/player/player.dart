@@ -31,6 +31,8 @@ class Player extends StatelessWidget {
       body: Obx(
         () => SlidingUpPanel(
           boxShadow: const [],
+          color: Colors.transparent,
+          renderPanelSheet: false,
           minHeight: settingsScreenController.playerUi.value == 0
               ? 65 + Get.mediaQuery.padding.bottom
               : 0,
@@ -52,16 +54,16 @@ class Player extends StatelessWidget {
               }
             },
             child: Container(
-                color: Theme.of(context).primaryColor,
+                color: Colors.transparent,
                 child: Column(
                   children: [
                     SizedBox(
                       height: 65,
                       child: Center(
                           child: Icon(
-                        color: Theme.of(context).textTheme.titleMedium!.color,
+                        color: Theme.of(context).textTheme.titleMedium!.color?.withOpacity(0.7) ?? Colors.white70,
                         Icons.keyboard_arrow_up,
-                        size: 40,
+                        size: 36,
                       )),
                     ),
                   ],

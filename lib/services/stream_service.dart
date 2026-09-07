@@ -169,9 +169,16 @@ class StreamProvider {
     );
   }
 
-  Audio? get highestQualityAudio =>
-      audioFormats?.lastWhere((item) => item.itag == 251 || item.itag == 140,
+  Audio? get highestQualityAudio {
+    if (Platform.isIOS) {
+      // iOS AVPlayer cannot play Opus (itag 251) natively without custom decoders; it requires mp4a/AAC (itag 140/139).
+      return audioFormats?.lastWhere(
+          (item) => item.audioCodec == Codec.mp4a || item.itag == 140 || item.itag == 139,
           orElse: () => audioFormats!.first);
+    }
+    return audioFormats?.lastWhere((item) => item.itag == 251 || item.itag == 140,
+        orElse: () => audioFormats!.first);
+  }
 
   Audio? get highestBitrateMp4aAudio =>
       audioFormats?.lastWhere((item) => item.itag == 140 || item.itag == 139,
@@ -181,9 +188,15 @@ class StreamProvider {
       audioFormats?.lastWhere((item) => item.itag == 251 || item.itag == 250,
           orElse: () => audioFormats!.first);
 
-  Audio? get lowQualityAudio =>
-      audioFormats?.lastWhere((item) => item.itag == 249 || item.itag == 139,
+  Audio? get lowQualityAudio {
+    if (Platform.isIOS) {
+      return audioFormats?.lastWhere(
+          (item) => item.audioCodec == Codec.mp4a || item.itag == 139 || item.itag == 140,
           orElse: () => audioFormats!.first);
+    }
+    return audioFormats?.lastWhere((item) => item.itag == 249 || item.itag == 139,
+        orElse: () => audioFormats!.first);
+  }
 
   Map<String, dynamic> get hmStreamingData {
     return {

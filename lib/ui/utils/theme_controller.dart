@@ -74,7 +74,8 @@ class ThemeController extends GetxController {
     final extractedColor = paletteColor!.color;
     final hsl = HSLColor.fromColor(extractedColor);
     final double targetSaturation = hsl.saturation.clamp(0.20, 0.40);
-    final double targetLightness = hsl.lightness.clamp(0.09, 0.14);
+    // Dark theme should never have lightness > 0.16 to prevent washed-out white/grey UI
+    final double targetLightness = hsl.lightness.clamp(0.08, 0.15);
     primaryColor.value = HSLColor.fromAHSL(1.0, hsl.hue, targetSaturation, targetLightness).toColor();
     textColor.value = Colors.white70;
 
