@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:audio_service/audio_service.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -8,7 +7,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:terminate_restart/terminate_restart.dart';
 
-import 'services/firebase_config.dart';
 import 'services/jam_service.dart';
 
 import 'services/jarvis_ipc_service.dart';
@@ -30,9 +28,6 @@ import 'utils/update_check_flag_file.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: FirebaseConfig.currentPlatform,
-  );
   await initHive();
   _setAppInitPrefs();
   startApplicationServices();

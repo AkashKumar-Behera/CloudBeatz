@@ -60,8 +60,15 @@ jobs:
                   print("Patched:", f)
           '
 
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod install
+          cd ..
+
       - name: Build iOS App (Unsigned)
         run: |
+          flutter build ios --config-only --no-codesign
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
@@ -71,6 +78,7 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             build
+
 
 
       - name: Package into IPA
