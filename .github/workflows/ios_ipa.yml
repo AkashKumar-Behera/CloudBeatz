@@ -48,22 +48,32 @@ jobs:
                   print("Patched:", f)
           '
 
-      - name: Build iOS App (Unsigned)
+      - name: Build iOS IPA (Unsigned)
         run: |
-          flutter build ios --release --no-codesign || true
+          flutter build ipa --no-codesign
 
       - name: Package into IPA
         run: |
-          if [ -d "build/ios/iphoneos/Runner.app" ]; then
-            echo "Found Runner.app! Packaging into IPA..."
-            cd build/ios/iphoneos
+          APP_PATH=""
+          if [ -d "build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app" ]; then
+            APP_PATH="build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app"
+          elif [ -d "build/ios/iphoneos/Runner.app" ]; then
+            APP_PATH="build/ios/iphoneos/Runner.app"
+          else
+            FOUND=$(find build -name "Runner.app" -type d | head -n 1)
+            if [ -n "$FOUND" ]; then
+              APP_PATH="$FOUND"
+            fi
+          fi
+
+          if [ -n "$APP_PATH" ] && [ -d "$APP_PATH" ]; then
+            echo "Found Runner.app at: $APP_PATH"
             mkdir -p Payload
-            cp -r Runner.app Payload/
+            cp -r "$APP_PATH" Payload/
             zip -r -9 CloudBeatz-unsigned.ipa Payload
-            mv CloudBeatz-unsigned.ipa ../../../
             echo "IPA created successfully!"
           else
-            echo "Error: Runner.app not found in build/ios/iphoneos/"
+            echo "Error: Runner.app could not be found anywhere in build/!"
             exit 1
           fi
 
