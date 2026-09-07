@@ -32,6 +32,10 @@ jobs:
       - name: Install Flutter Dependencies
         run: flutter pub get
 
+      - name: Patch terminate_restart for modern Flutter
+        run: |
+          find "$HOME/.pub-cache" -name "TerminateRestartPlugin.swift" -exec sed -i '' 's/if let engine = flutterViewController\.engine/let engine = flutterViewController.engine; if true/g' {} +
+
       - name: Build iOS App (Unsigned)
         run: |
           flutter build ios --release --no-codesign
