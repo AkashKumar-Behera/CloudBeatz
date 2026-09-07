@@ -14,7 +14,6 @@ import '../../widgets/song_download_btn.dart';
 import '../../widgets/image_widget.dart';
 import '../../widgets/mini_player_progress_bar.dart';
 import 'animated_play_button.dart';
-import '../../../services/jam_service.dart';
 
 class MiniPlayer extends StatelessWidget {
   const MiniPlayer({super.key});
@@ -26,19 +25,14 @@ class MiniPlayer extends StatelessWidget {
     final isWideScreen = size.width > 800;
     final bottomNavEnabled = Get.find<SettingsScreenController>().isBottomNavBarEnabled.isTrue;
     return Obx(() {
-      return Visibility(
-        visible: playerController.isPlayerpanelTopVisible.value,
-        child: AnimatedOpacity(
-          opacity: playerController.playerPaneOpacity.value,
-          duration: Duration.zero,
-          child: Container(
-            height: playerController.playerPanelMinHeight.value,
-            width: size.width,
-            color: Theme.of(context).brightness == Brightness.dark
-                ? (Theme.of(context).bottomSheetTheme.backgroundColor ?? const Color(0xFF141218))
-                : (Theme.of(context).bottomSheetTheme.backgroundColor ?? const Color(0xFF1E1C24)),
-            child: Center(
-              child: Column(
+      return Container(
+        height: playerController.playerPanelMinHeight.value,
+        width: size.width,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? (Theme.of(context).bottomSheetTheme.backgroundColor ?? const Color(0xFF141218))
+            : (Theme.of(context).bottomSheetTheme.backgroundColor ?? const Color(0xFF1E1C24)),
+        child: Center(
+          child: Column(
                 children: [
                   // ---------- CUSTOM FULL-WIDTH PROGRESS BAR ON TOP ----------
                   // This is the modified progress UI: one full-width bar across top of mini player.
@@ -161,48 +155,20 @@ class MiniPlayer extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.max,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Stack(
-                              children: [
-                                playerController.currentSong.value != null
-                                    ? ImageWidget(
-                                        size: 50,
-                                        song: playerController.currentSong.value!,
-                                      )
-                                    : const SizedBox(
-                                        height: 50,
-                                        width: 50,
-                                      ),
-                                Obx(() {
-                                  final jamService = Get.find<JamService>();
-                                  if (jamService.isInJam.isTrue) {
-                                    return Positioned(
-                                      top: 1,
-                                      right: 1,
-                                      child: Container(
-                                        width: 9,
-                                        height: 9,
-                                        decoration: BoxDecoration(
-                                          color: Colors.greenAccent,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(color: Colors.black, width: 1.5),
-                                          boxShadow: const [
-                                            BoxShadow(
-                                              color: Colors.greenAccent,
-                                              blurRadius: 4,
-                                              spreadRadius: 1,
-                                            )
-                                          ]
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                  return const SizedBox.shrink();
-                                }),
-                              ],
-                            ),
+                            playerController.currentSong.value != null
+                                ? ImageWidget(
+                                    size: 50,
+                                    song: playerController.currentSong.value!,
+                                  )
+                                : const SizedBox(
+                                    height: 50,
+                                    width: 50,
+                                  ),
                           ],
                         ),
                         const SizedBox(
@@ -604,8 +570,7 @@ class MiniPlayer extends StatelessWidget {
               ),
             ),
           ),
-        ),
-      );
+        );
     });
   }
 }

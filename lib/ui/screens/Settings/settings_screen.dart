@@ -17,7 +17,6 @@ import '/ui/player/player_controller.dart';
 import '/ui/utils/theme_controller.dart';
 import 'components/custom_expansion_tile.dart';
 import 'settings_screen_controller.dart';
-import '../../../services/jam_service.dart';
 
 
 class SettingsScreen extends StatelessWidget {
@@ -274,72 +273,6 @@ class SettingsScreen extends StatelessWidget {
                                 settingsController.slidableActionEnabled.isTrue,
                             onChanged: settingsController.toggleSlidableAction),
                       )),
-                ],
-              ),
-              CustomExpansionTile(
-                title: "Jam Session (Collaborative)",
-                icon: Icons.graphic_eq,
-                children: [
-                  ListTile(
-                    contentPadding: const EdgeInsets.only(left: 5, right: 10),
-                    title: const Text("Jam Display Name"),
-                    subtitle: Obx(() {
-                      final jamService = Get.find<JamService>();
-                      final name = jamService.myDisplayName.value;
-                      return Text(
-                        name.isEmpty ? "Not set (Tap to set)" : name,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      );
-                    }),
-                    onTap: () {
-                      final jamService = Get.find<JamService>();
-                      final nameCon = TextEditingController(text: jamService.myDisplayName.value);
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          title: const Text("Set Jam Display Name"),
-                          content: TextField(
-                            controller: nameCon,
-                            maxLength: 15,
-                            textCapitalization: TextCapitalization.words,
-                            decoration: const InputDecoration(
-                              hintText: "Enter a name",
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text("Cancel"),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                final name = nameCon.text.trim();
-                                if (name.isNotEmpty) {
-                                  jamService.updateDisplayName(name);
-                                  Get.snackbar("Name Saved", "Your Jam name has been updated");
-                                }
-                                Navigator.pop(context);
-                              },
-                              child: const Text("Save"),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                  ListTile(
-                    contentPadding: const EdgeInsets.only(left: 5, right: 10),
-                    title: const Text("Open Jam Dashboard"),
-                    subtitle: Text(
-                      "Start a new Jam session or join an active one.",
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    onTap: () {
-                      final jamService = Get.find<JamService>();
-                      jamService.showJamBottomSheet();
-                    },
-                  ),
                 ],
               ),
               CustomExpansionTile(

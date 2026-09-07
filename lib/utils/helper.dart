@@ -200,13 +200,3 @@ String getTimeString(Duration time) {
       : "$minutes:$seconds";
 }
 
-String getJamDisplayName() {
-  final box = Hive.box("AppPrefs");
-  return box.get('jamProfileName') ?? '';
-}
-
-void setJamDisplayName(String name) {
-  final box = Hive.box("AppPrefs");
-  box.put('jamProfileName', name);
-}
-

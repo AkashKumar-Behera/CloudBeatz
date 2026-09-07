@@ -387,12 +387,13 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
   Future<void> skipToNext() async {
     final index = _getNextSongIndex();
     if (index != currentIndex) {
-      await _player.stop();
+      if (index >= 0 && index < queue.value.length) {
+        mediaItem.add(queue.value[index]);
+      }
       await customAction("playByIndex", {'index': index});
     } else {
-      await _player.stop();
-      _player.seek(Duration.zero);
-      _player.pause();
+      await _player.seek(Duration.zero);
+      await _player.pause();
     }
   }
 
@@ -402,9 +403,11 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
       _player.seek(Duration.zero);
       return;
     }
-    await _player.stop();
     final index = _getPrevSongIndex();
     if (index != currentIndex) {
+      if (index >= 0 && index < queue.value.length) {
+        mediaItem.add(queue.value[index]);
+      }
       await customAction("playByIndex", {'index': index});
     }
   }

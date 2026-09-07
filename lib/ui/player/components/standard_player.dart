@@ -16,9 +16,6 @@ import 'lyrics_switch.dart';
 import 'lyrics_widget.dart';
 import 'modern_player.dart';
 import 'player_control.dart';
-import '../../../services/jam_service.dart';
-import 'jam_bar.dart';
-import 'jam_reaction_overlay.dart';
 
 
 /// Standard player widget
@@ -177,12 +174,6 @@ class StandardPlayer extends StatelessWidget {
                   ),
                 )
               : const SizedBox.shrink()),
-
-        // ── Jam Reaction Overlay ───────────────────────────────────────────
-        Obx(() {
-          final jamService = Get.find<JamService>();
-          return jamService.isInJam.isTrue ? const JamReactionOverlay() : const SizedBox.shrink();
-        }),
       ],
     );
   }
@@ -223,10 +214,6 @@ class _StandardNormalLayout extends StatelessWidget {
 
         const Expanded(child: SizedBox()),
 
-        Obx(() {
-          final jamService = Get.find<JamService>();
-          return jamService.isInJam.isTrue ? const JamBar() : const SizedBox.shrink();
-        }),
 
         Padding(
           padding: EdgeInsets.only(
@@ -286,10 +273,6 @@ class _StandardLyricsLayout extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          Obx(() {
-            final jamService = Get.find<JamService>();
-            return jamService.isInJam.isTrue ? const JamBar() : const SizedBox.shrink();
-          }),
 
           Padding(
             padding: EdgeInsets.only(

@@ -16,9 +16,6 @@ import '../../widgets/rectangular_slider_thumb_shape.dart';
 import '../player_controller.dart';
 import 'backgroud_image.dart';
 import 'lyrics_widget.dart';
-import '../../../services/jam_service.dart';
-import 'jam_bar.dart';
-import 'jam_reaction_overlay.dart';
 
 
 /// Modern Player UI — v2
@@ -90,12 +87,6 @@ class ModernPlayer extends StatelessWidget {
             );
           }),
         ),
-
-        // ── Jam Reaction Overlay ───────────────────────────────────────────
-        Obx(() {
-          final jamService = Get.find<JamService>();
-          return jamService.isInJam.isTrue ? const JamReactionOverlay() : const SizedBox.shrink();
-        }),
       ],
     );
   }
@@ -216,10 +207,6 @@ class ModernPlayer extends StatelessWidget {
 
         const Spacer(),
         
-        Obx(() {
-          final jamService = Get.find<JamService>();
-          return jamService.isInJam.isTrue ? const JamBar() : const SizedBox.shrink();
-        }),
 
         // ── Floating bottom dock ──────────────────────────────────────
         _buildBottomDock(context, pc, bottomPad),
@@ -287,10 +274,6 @@ class ModernPlayer extends StatelessWidget {
 
         const SizedBox(height: 24),
 
-        Obx(() {
-          final jamService = Get.find<JamService>();
-          return jamService.isInJam.isTrue ? const JamBar() : const SizedBox.shrink();
-        }),
 
         // ── Floating bottom dock ──────────────────────────────────────
         _buildBottomDock(context, pc, bottomPad),
