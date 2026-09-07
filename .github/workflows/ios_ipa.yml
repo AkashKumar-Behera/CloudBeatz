@@ -18,6 +18,9 @@ jobs:
           cache: true
 
 
+      - name: Disable Swift Package Manager (use CocoaPods)
+        run: flutter config --no-enable-swift-package-manager
+
       - name: Update Lang Data
         run: dart localization/generator.dart
 
