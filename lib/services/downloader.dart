@@ -181,9 +181,21 @@ class Downloader extends GetxService {
       return complete.future;
     }
 
-    Audio requiredAudioStream = downloadingFormat == "opus"
-        ? playerResponse.highestBitrateOpusAudio!
-        : playerResponse.highestBitrateMp4aAudio!;
+    Audio? stream = downloadingFormat == "opus"
+        ? (playerResponse.highestBitrateOpusAudio ?? playerResponse.highestBitrateMp4aAudio)
+        : (playerResponse.highestBitrateMp4aAudio ?? playerResponse.highestBitrateOpusAudio);
+    stream ??= playerResponse.highestQualityAudio ?? playerResponse.lowQualityAudio;
+
+    if (stream == null) {
+      ScaffoldMessenger.of(Get.context!).showSnackBar(snackbar(
+          Get.context!, "Requested song audio stream is unavailable.",
+          size: SanckBarSize.BIG,
+          duration: const Duration(seconds: 2),
+          top: !GetPlatform.isDesktop));
+      complete.complete();
+      return complete.future;
+    }
+    Audio requiredAudioStream = stream;
 
     final dirPath = settingsScreenController.downloadLocationPath.string;
     final actualDownformat =
