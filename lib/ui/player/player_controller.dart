@@ -381,8 +381,37 @@ class PlayerController extends GetxController
         final content = await _musicServices.getWatchPlaylist(
             videoId: mediaItem?.id ?? "", radio: radio, playlistId: playlistid);
         radioContinuationParam = content['additionalParamsForNext'];
-        await _audioHandler
-            .updateQueue(List<MediaItem>.from(content['tracks']));
+        final tracks = List<MediaItem>.from(content['tracks']);
+        await _audioHandler.updateQueue(tracks);
+
+        // Immediate sync: If current playing song came without duration (e.g. search)
+        // or has 2x duration bug, update UI progressBarStatus and currentSong now!
+        if (tracks.isNotEmpty && mediaItem != null) {
+          final matching = tracks.firstWhereOrNull((t) => t.id == mediaItem.id);
+          if (matching != null) {
+            Duration? trueDur = matching.duration;
+            if ((trueDur == null || trueDur == Duration.zero) && matching.extras?['length'] != null) {
+              trueDur = MediaItemBuilder.toDuration(matching.extras!['length']);
+            }
+            if (trueDur != null && trueDur > Duration.zero) {
+              final curSec = progressBarStatus.value.total.inSeconds;
+              final trueSec = trueDur.inSeconds;
+              if (curSec == 0 || (curSec >= trueSec * 1.8 && curSec <= trueSec * 2.2)) {
+                progressBarStatus.update((val) => val!.total = trueDur!);
+                if (currentSong.value?.id == matching.id) {
+                  currentSong.value = currentSong.value!.copyWith(
+                    duration: trueDur,
+                    extras: {
+                      ...?currentSong.value!.extras,
+                      'length': matching.extras?['length'] ?? currentSong.value!.extras?['length'],
+                    },
+                  );
+                }
+              }
+            }
+          }
+        }
+
         if (isShuffleModeEnabled.isTrue) {
           await _audioHandler.customAction("shuffleCmd", {"index": 0});
         }

@@ -188,11 +188,6 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
       Duration? targetDuration = mediaItem.value?.duration;
       if (targetDuration == null || targetDuration <= Duration.zero) {
         targetDuration = _player.duration;
-      } else if (_player.duration != null && _player.duration! > Duration.zero) {
-        // If player reports duration, prefer the smaller valid duration if stream duration is ~2x metadata duration
-        if (_player.duration! < targetDuration) {
-          targetDuration = _player.duration;
-        }
       }
 
       if (targetDuration != null && targetDuration.inSeconds > 0) {
@@ -240,8 +235,8 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
         final metaSec = expectedDur.inSeconds;
         final streamSec = duration.inSeconds;
         if (streamSec > 0 && (streamSec >= metaSec * 1.8 && streamSec <= metaSec * 2.2)) {
-          // If currentSong didn't have duration set, set it to the true expectedDur
-          if (currentSong.duration == null || currentSong.duration == Duration.zero) {
+          // If currentSong didn't have duration set or had wrong duration, set it to the true expectedDur
+          if (currentSong.duration != expectedDur) {
             final newMediaItem = currentSong.copyWith(duration: expectedDur);
             currQueue[currentIndex] = newMediaItem;
             queue.add(List.from(currQueue));
@@ -284,6 +279,46 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
     final newQueue = this.queue.value
       ..replaceRange(0, this.queue.value.length, queue);
     this.queue.add(newQueue);
+
+    // If current mediaItem was pushed without duration (e.g. from search),
+    // or has doubled duration from iOS AVPlayer, sync its real duration from the new queue!
+    final curItem = mediaItem.value;
+    if (curItem != null && queue.isNotEmpty) {
+      MediaItem? matching;
+      for (final item in queue) {
+        if (item.id == curItem.id) {
+          matching = item;
+          break;
+        }
+      }
+      if (matching != null) {
+        Duration? trueDur = matching.duration;
+        if ((trueDur == null || trueDur == Duration.zero) && matching.extras?['length'] != null) {
+          trueDur = MediaItemBuilder.toDuration(matching.extras!['length']);
+        }
+        if (trueDur != null && trueDur > Duration.zero) {
+          final curSec = curItem.duration?.inSeconds ?? 0;
+          final trueSec = trueDur.inSeconds;
+          final isDoubled = curSec > 0 && (curSec >= trueSec * 1.8 && curSec <= trueSec * 2.2);
+          if (curSec == 0 || isDoubled) {
+            final fixedItem = curItem.copyWith(
+              duration: trueDur,
+              extras: {
+                ...?curItem.extras,
+                'length': matching.extras?['length'] ?? curItem.extras?['length'],
+              },
+            );
+            mediaItem.add(fixedItem);
+            if (currentIndex != null && currentIndex >= 0 && currentIndex < newQueue.length) {
+              if (newQueue[currentIndex].id == fixedItem.id) {
+                newQueue[currentIndex] = fixedItem;
+                this.queue.add(List.from(newQueue));
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   @override
@@ -619,6 +654,20 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
         Duration? determinedDur = curItem.duration;
         if ((determinedDur == null || determinedDur == Duration.zero) && curItem.extras?['length'] != null) {
           determinedDur = MediaItemBuilder.toDuration(curItem.extras!['length']);
+        }
+        // If still null, check if watchPlaylist already loaded into queue
+        if (determinedDur == null || determinedDur == Duration.zero) {
+          final q = queue.value;
+          for (final item in q) {
+            if (item.id == curItem.id) {
+              if (item.duration != null && item.duration! > Duration.zero) {
+                determinedDur = item.duration;
+              } else if (item.extras?['length'] != null) {
+                determinedDur = MediaItemBuilder.toDuration(item.extras!['length']);
+              }
+              break;
+            }
+          }
         }
 
         final playerDur = _player.duration;
