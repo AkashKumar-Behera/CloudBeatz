@@ -72,18 +72,28 @@ jobs:
             cd -
           done
 
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/Pods
+            ~/Library/Caches/CocoaPods
+            ~/.cocoapods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
       - name: Install CocoaPods
         run: |
           cd ios
           pod install
           cd ..
 
-
       - name: Build iOS App (Unsigned)
         run: |
-          flutter build ios --release --no-codesign
+          flutter build ios --release --no-codesign --split-debug-info=build/debug-info
 
-      - name: Package into IPA
+      - name: Package into IPA (Fast Zip)
         run: |
           APP_PATH=""
           if [ -d "build/ios/iphoneos/Runner.app" ]; then
@@ -96,7 +106,7 @@ jobs:
             echo "Packaging Runner.app from: $APP_PATH"
             mkdir -p Payload
             cp -r "$APP_PATH" Payload/
-            zip -r -9 CloudBeatz-unsigned.ipa Payload
+            zip -r -1 CloudBeatz-unsigned.ipa Payload
             echo "IPA created successfully!"
           else
             echo "Error: Device Runner.app not found!"
