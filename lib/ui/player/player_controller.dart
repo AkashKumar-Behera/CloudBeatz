@@ -267,10 +267,19 @@ class PlayerController extends GetxController
     _audioHandler.mediaItem.listen((mediaItem) async {
       final oldState = progressBarStatus.value;
       Duration songDur = mediaItem?.duration ?? Duration.zero;
-      if (songDur == Duration.zero && mediaItem?.extras?['length'] != null) {
+      if (mediaItem?.extras?['length'] != null) {
         final parsedDur = MediaItemBuilder.toDuration(mediaItem!.extras!['length']);
         if (parsedDur != null && parsedDur > Duration.zero) {
-          songDur = parsedDur;
+          if (songDur == Duration.zero) {
+            songDur = parsedDur;
+          } else {
+            // Guard against iOS 2x duration bug overriding valid metadata length
+            final metaSec = parsedDur.inSeconds;
+            final streamSec = songDur.inSeconds;
+            if (streamSec > 0 && (streamSec >= metaSec * 1.8 && streamSec <= metaSec * 2.2)) {
+              songDur = parsedDur;
+            }
+          }
         }
       }
       progressBarStatus.update((val) {

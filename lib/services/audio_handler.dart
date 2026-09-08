@@ -229,18 +229,31 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
       if (currentIndex < 0 || currentIndex >= currQueue.length) return;
       final currentSong = currQueue[currentIndex];
       
-      // If currentSong already has a valid duration from metadata, do not let an erroneous 2x stream duration override it
-      if (currentSong.duration != null && currentSong.duration! > Duration.zero) {
-        // If stream duration is roughly double the metadata duration (known iOS AVPlayer bug), keep original metadata duration
-        final metaSec = currentSong.duration!.inSeconds;
+      // Determine expected metadata duration if available
+      Duration? expectedDur = currentSong.duration;
+      if ((expectedDur == null || expectedDur == Duration.zero) && currentSong.extras?['length'] != null) {
+        expectedDur = MediaItemBuilder.toDuration(currentSong.extras!['length']);
+      }
+
+      // If we have an expected duration from metadata/length, protect against known iOS AVPlayer 2x bug
+      if (expectedDur != null && expectedDur > Duration.zero) {
+        final metaSec = expectedDur.inSeconds;
         final streamSec = duration.inSeconds;
         if (streamSec > 0 && (streamSec >= metaSec * 1.8 && streamSec <= metaSec * 2.2)) {
+          // If currentSong didn't have duration set, set it to the true expectedDur
+          if (currentSong.duration == null || currentSong.duration == Duration.zero) {
+            final newMediaItem = currentSong.copyWith(duration: expectedDur);
+            currQueue[currentIndex] = newMediaItem;
+            queue.add(List.from(currQueue));
+            mediaItem.add(newMediaItem);
+          }
           return;
         }
       }
 
       if (currentSong.duration == null || currentSong.duration == Duration.zero) {
-        final newMediaItem = currentSong.copyWith(duration: duration);
+        final finalDur = (expectedDur != null && expectedDur > Duration.zero) ? expectedDur : duration;
+        final newMediaItem = currentSong.copyWith(duration: finalDur);
         currQueue[currentIndex] = newMediaItem;
         queue.add(List.from(currQueue));
         mediaItem.add(newMediaItem);
@@ -601,10 +614,26 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
         }
         isSongLoading = false;
 
-        // Immediately apply duration from player if current item has no duration
+        // Immediately apply duration from metadata or player if current item has no duration
+        final curItem = mediaItem.value ?? currMed;
+        Duration? determinedDur = curItem.duration;
+        if ((determinedDur == null || determinedDur == Duration.zero) && curItem.extras?['length'] != null) {
+          determinedDur = MediaItemBuilder.toDuration(curItem.extras!['length']);
+        }
+
         final playerDur = _player.duration;
-        if (playerDur != null && playerDur > Duration.zero) {
-          final curItem = mediaItem.value ?? currMed;
+        if (determinedDur != null && determinedDur > Duration.zero) {
+          // If player duration is 2x of metadata (known iOS bug), keep determinedDur
+          if (curItem.duration != determinedDur) {
+            final updatedMed = curItem.copyWith(duration: determinedDur);
+            final updatedQueue = queue.value;
+            if (currentIndex != null && currentIndex >= 0 && currentIndex < updatedQueue.length) {
+              updatedQueue[currentIndex] = updatedMed;
+              queue.add(List.from(updatedQueue));
+            }
+            mediaItem.add(updatedMed);
+          }
+        } else if (playerDur != null && playerDur > Duration.zero) {
           if (curItem.duration == null || curItem.duration == Duration.zero) {
             final updatedMed = curItem.copyWith(duration: playerDur);
             final updatedQueue = queue.value;
