@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -211,6 +213,49 @@ class SongInfoBottomSheet extends StatelessWidget {
                       }
                     })
                 : const SizedBox.shrink(),
+            Obx(
+              () => (songInfoController.isDownloaded.isTrue)
+                  ? ListTile(
+                      contentPadding: const EdgeInsets.only(left: 15),
+                      visualDensity: const VisualDensity(vertical: -1),
+                      leading: const Icon(Icons.drive_folder_upload_outlined),
+                      title: Text("Save / Share Audio File".tr),
+                      onTap: () async {
+                        Navigator.of(context).pop();
+                        final box = Hive.box("SongDownloads");
+                        final songData = box.get(song.id);
+                        String? path = songData?['url'] ?? song.extras?['url'];
+
+                        if (path != null) {
+                          if (!File(path).existsSync()) {
+                            final filename = path.split(RegExp(r'[/\\]')).last;
+                            final supportMusicPath = "${Get.find<SettingsScreenController>().supportDirPath}/Music/$filename";
+                            final defaultDownPath = "${Get.find<SettingsScreenController>().downloadLocationPath.value}/$filename";
+                            if (File(supportMusicPath).existsSync()) {
+                              path = supportMusicPath;
+                            } else if (File(defaultDownPath).existsSync()) {
+                              path = defaultDownPath;
+                            }
+                          }
+
+                          if (File(path).existsSync()) {
+                            await Share.shareXFiles(
+                              [XFile(path)],
+                              text: "${song.title} - ${song.artist}",
+                            );
+                            return;
+                          }
+                        }
+
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            snackbar(context, "File not found on device", size: SanckBarSize.MEDIUM),
+                          );
+                        }
+                      },
+                    )
+                  : const SizedBox.shrink(),
+            ),
             Obx(
               () => (songInfoController.isDownloaded.isTrue &&
                       (playlist?.playlistId != "SongDownloads" &&

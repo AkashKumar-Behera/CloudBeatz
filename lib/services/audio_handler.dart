@@ -12,6 +12,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' hide Playlist;
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:dio/dio.dart';
 import 'package:audio_service/audio_service.dart';
 // ignore: depend_on_referenced_packages
 import 'package:rxdart/rxdart.dart';
@@ -337,6 +338,16 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
     isPlayingUsingLockCachingSource = false;
     printINFO("Playing Stream URL: $url");
 
+    if (url.startsWith('file://') ||
+        (!url.startsWith('http://') && !url.startsWith('https://'))) {
+      final cleanPath = url.replaceFirst('file://', '');
+      printINFO("Playing Local Audio File: $cleanPath");
+      return AudioSource.file(
+        cleanPath,
+        tag: mediaItem,
+      );
+    }
+
     return AudioSource.uri(
       Uri.parse(url),
       headers: {
@@ -572,34 +583,59 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
         break;
 
       case 'checkWithCacheDb':
-        if (isPlayingUsingLockCachingSource) {
+        try {
           final song = extras!['mediaItem'] as MediaItem;
           final songsCacheBox = Hive.box("SongsCache");
-          if (!songsCacheBox.containsKey(song.id) &&
-              await File("$_cacheDir/cachedSongs/${song.id}.mp3").exists()) {
-            song.extras!['url'] = currentSongUrl;
-            song.extras!['date'] = DateTime.now().millisecondsSinceEpoch;
-            final dbStreamData = Hive.box("SongsUrlCache").get(song.id);
-            final jsonData = MediaItemBuilder.toJson(song);
-            jsonData['duration'] = _player.duration!.inSeconds;
-            // playbility status and info
-            jsonData['streamInfo'] = dbStreamData != null
-                ? [
-                    true,
-                    dbStreamData[
-                        Hive.box('AppPrefs').get('streamingQuality') == 0
-                            ? 'lowQualityAudio'
-                            : "highQualityAudio"]
-                  ]
-                : null;
-            songsCacheBox.put(song.id, jsonData);
-            LibrarySongsController librarySongsController =
-                Get.find<LibrarySongsController>();
-            if (!librarySongsController.isClosed) {
-              librarySongsController.librarySongsList.value =
-                  librarySongsController.librarySongsList.toList() + [song];
+          final cacheFilePath = "$_cacheDir/cachedSongs/${song.id}.mp3";
+          final cacheFile = File(cacheFilePath);
+          final bool cacheSettingEnabled =
+              Get.isRegistered<SettingsScreenController>() &&
+                  Get.find<SettingsScreenController>().cacheSongs.isTrue;
+
+          if (!songsCacheBox.containsKey(song.id)) {
+            // If file doesn't exist yet but caching is enabled and we have a valid remote URL, download it to cache!
+            if (!await cacheFile.exists() &&
+                cacheSettingEnabled &&
+                currentSongUrl != null &&
+                (currentSongUrl!.startsWith('http://') ||
+                    currentSongUrl!.startsWith('https://'))) {
+              try {
+                await Dio().download(currentSongUrl!, cacheFilePath);
+                printINFO("Song ${song.id} successfully cached to $cacheFilePath");
+              } catch (dlErr) {
+                printERROR("Failed to download song to cache: $dlErr");
+              }
+            }
+
+            if (await cacheFile.exists()) {
+              song.extras!['url'] = "file://$cacheFilePath";
+              song.extras!['date'] = DateTime.now().millisecondsSinceEpoch;
+              final dbStreamData = Hive.box("SongsUrlCache").get(song.id);
+              final jsonData = MediaItemBuilder.toJson(song);
+              jsonData['duration'] = _player.duration?.inSeconds ?? 0;
+              // playability status and info
+              jsonData['streamInfo'] = dbStreamData != null
+                  ? [
+                      true,
+                      dbStreamData[
+                          Hive.box('AppPrefs').get('streamingQuality') == 0
+                              ? 'lowQualityAudio'
+                              : "highQualityAudio"]
+                    ]
+                  : null;
+              songsCacheBox.put(song.id, jsonData);
+              if (Get.isRegistered<LibrarySongsController>()) {
+                LibrarySongsController librarySongsController =
+                    Get.find<LibrarySongsController>();
+                if (!librarySongsController.isClosed) {
+                  librarySongsController.librarySongsList.value =
+                      librarySongsController.librarySongsList.toList() + [song];
+                }
+              }
             }
           }
+        } catch (e) {
+          printERROR("checkWithCacheDb error: $e");
         }
         break;
 
@@ -939,9 +975,23 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
     } else if (!offlineReplacementUrl && songDownloadsBox.containsKey(songId)) {
       final song = songDownloadsBox.get(songId);
       final streamInfoJson = song["streamInfo"];
+      String path = song['url'] as String;
+
+      // Handle iOS sandbox container UUID changes or relative paths
+      if (!File(path).existsSync()) {
+        final filename = path.split(RegExp(r'[/\\]')).last;
+        final supportMusicPath = "${Get.find<SettingsScreenController>().supportDirPath}/Music/$filename";
+        final defaultDownPath = "${Get.find<SettingsScreenController>().downloadLocationPath.value}/$filename";
+        if (File(supportMusicPath).existsSync()) {
+          path = supportMusicPath;
+        } else if (File(defaultDownPath).existsSync()) {
+          path = defaultDownPath;
+        }
+      }
+
       Audio? audio;
-      final path = song['url'];
       if (streamInfoJson != null && streamInfoJson.isNotEmpty) {
+        streamInfoJson[1]['url'] = path;
         audio = Audio.fromJson(streamInfoJson[1]);
       } else {
         audio = Audio(
@@ -960,17 +1010,23 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
           highQualityAudio: audio,
           lowQualityAudio: audio);
 
-      if (path.contains(
-          "${Get.find<SettingsScreenController>().supportDirPath}/Music")) {
+      // Check if file exists in app support directory or on disk
+      if (File(path).existsSync()) {
         return streamInfo;
       }
-      //check file access and if file exist in storage
+
       final status = await PermissionService.getExtStoragePermission();
       if (status && await File(path).exists()) {
         return streamInfo;
       }
-      //in case file doesnot found in storage, song will be played online
-      return checkNGetUrl(songId, offlineReplacementUrl: true);
+
+      // If file does not exist locally, fallback to online stream if online
+      try {
+        return await checkNGetUrl(songId, offlineReplacementUrl: true);
+      } catch (e) {
+        // If offline and stream fetch fails, return local streamInfo so player can attempt or give proper offline status
+        return streamInfo;
+      }
     } else {
       final songsUrlCacheBox = Hive.box("SongsUrlCache");
       final qualityIndex = Hive.box('AppPrefs').get('streamingQuality') ?? 1;

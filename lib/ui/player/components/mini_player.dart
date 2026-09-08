@@ -35,118 +35,120 @@ class MiniPlayer extends StatelessWidget {
           child: Column(
                 children: [
                   // ---------- CUSTOM FULL-WIDTH PROGRESS BAR ON TOP ----------
-                  // This is the modified progress UI: one full-width bar across top of mini player.
-                  // Left side = played (lighter), Right side = remaining (darker), vertical divider shows current pos.
-                  GetX<PlayerController>(builder: (controller) {
-                    final status = controller.progressBarStatus.value;
-                    final total = status.total;
-                    final current = status.current;
-                    // protect against zero or null
-                    final totalMs =
-                        (total.inMilliseconds <= 0) ? 1 : total.inMilliseconds;
-                    final currentMs =
-                        current.inMilliseconds.clamp(0, totalMs).toInt();
-                    final fraction = currentMs / totalMs;
+                  // Constrained to top height 10 so it does not intercept controls or title taps
+                  SizedBox(
+                    height: 10,
+                    child: GetX<PlayerController>(builder: (controller) {
+                      final status = controller.progressBarStatus.value;
+                      final total = status.total;
+                      final current = status.current;
+                      // protect against zero or null
+                      final totalMs =
+                          (total.inMilliseconds <= 0) ? 1 : total.inMilliseconds;
+                      final currentMs =
+                          current.inMilliseconds.clamp(0, totalMs).toInt();
+                      final fraction = currentMs / totalMs;
 
-                    return GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onTapDown: (details) {
-                        // Seek to tapped position
-                        final box = context.findRenderObject() as RenderBox?;
-                        if (box == null) return;
-                        final local = box.globalToLocal(details.globalPosition);
-                        final width = box.size.width;
-                        final dx = local.dx.clamp(0.0, width);
-                        final tappedFraction = dx / width;
-                        final seekMs = (tappedFraction * totalMs).toInt();
-                        controller.seek(Duration(milliseconds: seekMs));
-                      },
-                      onHorizontalDragUpdate: (details) {
-                        final box = context.findRenderObject() as RenderBox?;
-                        if (box == null) return;
-                        final local = box.globalToLocal(details.globalPosition);
-                        final width = box.size.width;
-                        final dx = local.dx.clamp(0.0, width);
-                        final draggedFraction = dx / width;
-                        final seekMs = (draggedFraction * totalMs).toInt();
-                        controller.seek(Duration(milliseconds: seekMs));
-                      },
-                      child: LayoutBuilder(builder: (context, constraints) {
-                        const double barHeight = 5.0;
-                        final width = constraints.maxWidth;
-                        final playedWidth =
-                            (width * fraction).clamp(0.0, width);
-                        final theme = Theme.of(context);
-                        final playedColor =
-                            theme.progressIndicatorTheme.color ??
-                                theme.colorScheme.primary;
-                        final remainingColor = theme
-                                .sliderTheme.inactiveTrackColor ??
-                            theme.colorScheme.surface.withValues(alpha: 0.5);
+                      return GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTapDown: (details) {
+                          // Seek to tapped position
+                          final box = context.findRenderObject() as RenderBox?;
+                          if (box == null) return;
+                          final local = box.globalToLocal(details.globalPosition);
+                          final width = box.size.width;
+                          final dx = local.dx.clamp(0.0, width);
+                          final tappedFraction = dx / width;
+                          final seekMs = (tappedFraction * totalMs).toInt();
+                          controller.seek(Duration(milliseconds: seekMs));
+                        },
+                        onHorizontalDragUpdate: (details) {
+                          final box = context.findRenderObject() as RenderBox?;
+                          if (box == null) return;
+                          final local = box.globalToLocal(details.globalPosition);
+                          final width = box.size.width;
+                          final dx = local.dx.clamp(0.0, width);
+                          final draggedFraction = dx / width;
+                          final seekMs = (draggedFraction * totalMs).toInt();
+                          controller.seek(Duration(milliseconds: seekMs));
+                        },
+                        child: LayoutBuilder(builder: (context, constraints) {
+                          const double barHeight = 5.0;
+                          final width = constraints.maxWidth;
+                          final playedWidth =
+                              (width * fraction).clamp(0.0, width);
+                          final theme = Theme.of(context);
+                          final playedColor =
+                              theme.progressIndicatorTheme.color ??
+                                  theme.colorScheme.primary;
+                          final remainingColor = theme
+                                  .sliderTheme.inactiveTrackColor ??
+                              theme.colorScheme.surface.withValues(alpha: 0.5);
 
-                        return Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 0.0),
-                          color: Colors.transparent,
-                          child: Stack(
-                            alignment: Alignment.centerLeft,
-                            children: [
-                              // background remaining bar
-                              Container(
-                                height: barHeight,
-                                width: width,
-                                decoration: BoxDecoration(
-                                  color: remainingColor,
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                              // played bar (animated)
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 250),
-                                height: barHeight,
-                                width: playedWidth,
-                                decoration: BoxDecoration(
-                                  color: playedColor,
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                              // vertical divider / current position indicator
-                              Positioned(
-                                left: (playedWidth - 1).clamp(0.0, width - 1),
-                                child: Container(
-                                  height: barHeight + 6,
-                                  width: 2,
+                          return Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 0.0),
+                            color: Colors.transparent,
+                            child: Stack(
+                              alignment: Alignment.centerLeft,
+                              children: [
+                                // background remaining bar
+                                Container(
+                                  height: barHeight,
+                                  width: width,
                                   decoration: BoxDecoration(
-                                    color: theme.textTheme.titleMedium?.color ??
-                                        Colors.white,
-                                    borderRadius: BorderRadius.circular(1),
+                                    color: remainingColor,
+                                    borderRadius: BorderRadius.circular(2),
                                   ),
                                 ),
-                              ),
-                              // small draggable thumb (optional) - visually subtle
-                              Positioned(
-                                left: (playedWidth - 6).clamp(0.0, width - 12),
-                                child: Container(
-                                  height: 12,
-                                  width: 12,
+                                // played bar (animated)
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 250),
+                                  height: barHeight,
+                                  width: playedWidth,
                                   decoration: BoxDecoration(
-                                    color: theme.colorScheme.secondary,
-                                    shape: BoxShape.circle,
-                                    boxShadow: const [
-                                      BoxShadow(
-                                          color: Colors.black26,
-                                          blurRadius: 3,
-                                          offset: Offset(0, 1))
-                                    ],
+                                    color: playedColor,
+                                    borderRadius: BorderRadius.circular(2),
                                   ),
                                 ),
-                              )
-                            ],
-                          ),
-                        );
-                      }),
-                    );
-                  }),
+                                // vertical divider / current position indicator
+                                Positioned(
+                                  left: (playedWidth - 1).clamp(0.0, width - 1),
+                                  child: Container(
+                                    height: barHeight + 6,
+                                    width: 2,
+                                    decoration: BoxDecoration(
+                                      color: theme.textTheme.titleMedium?.color ??
+                                          Colors.white,
+                                      borderRadius: BorderRadius.circular(1),
+                                    ),
+                                  ),
+                                ),
+                                // small draggable thumb (optional) - visually subtle
+                                Positioned(
+                                  left: (playedWidth - 6).clamp(0.0, width - 12),
+                                  child: Container(
+                                    height: 12,
+                                    width: 12,
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.secondary,
+                                      shape: BoxShape.circle,
+                                      boxShadow: const [
+                                        BoxShadow(
+                                            color: Colors.black26,
+                                            blurRadius: 3,
+                                            offset: Offset(0, 1))
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              ],
+                            ),
+                          );
+                        }),
+                      );
+                    }),
+                  ),
                   // ---------- END custom progress bar ----------
                   Padding(
                     padding: const EdgeInsets.symmetric(
@@ -155,80 +157,87 @@ class MiniPlayer extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.max,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            playerController.currentSong.value != null
-                                ? ImageWidget(
-                                    size: 50,
-                                    song: playerController.currentSong.value!,
-                                  )
-                                : const SizedBox(
-                                    height: 50,
-                                    width: 50,
-                                  ),
-                          ],
-                        ),
-                        const SizedBox(
-                          width: 10,
-                        ),
                         Expanded(
                           child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
                             onHorizontalDragEnd: (DragEndDetails details) {
-                              if (details.primaryVelocity! < 0) {
-                                playerController.next();
-                              } else if (details.primaryVelocity! > 0) {
-                                playerController.prev();
+                              if (details.primaryVelocity != null) {
+                                if (details.primaryVelocity! < 0) {
+                                  playerController.next();
+                                } else if (details.primaryVelocity! > 0) {
+                                  playerController.prev();
+                                }
                               }
                             },
                             onTap: () {
                               playerController.playerPanelController.open();
                             },
-                            child: ColoredBox(
-                              color: Colors.transparent,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(
-                                    height: 20,
-                                    child: Text(
-                                      playerController.currentSong.value != null
-                                          ? playerController
-                                              .currentSong.value!.title
-                                          : "",
-                                      maxLines: 1,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    height: 20,
-                                    child: Marquee(
-                                      id: "${playerController.currentSong.value}_mini",
-                                      delay: const Duration(milliseconds: 300),
-                                      duration: const Duration(seconds: 5),
-                                      child: Text(
-                                        playerController.currentSong.value !=
-                                                null
-                                            ? playerController
-                                                .currentSong.value!.artist!
-                                            : "",
-                                        maxLines: 1,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleSmall,
+                            child: Row(
+                              children: [
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.max,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    playerController.currentSong.value != null
+                                        ? ImageWidget(
+                                            size: 50,
+                                            song: playerController.currentSong.value!,
+                                          )
+                                        : const SizedBox(
+                                            height: 50,
+                                            width: 50,
+                                          ),
+                                  ],
+                                ),
+                                const SizedBox(
+                                  width: 10,
+                                ),
+                                Expanded(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SizedBox(
+                                        height: 20,
+                                        child: Text(
+                                          playerController.currentSong.value != null
+                                              ? playerController
+                                                  .currentSong.value!.title
+                                              : "",
+                                          maxLines: 1,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium,
+                                        ),
                                       ),
-                                    ),
+                                      SizedBox(
+                                        height: 20,
+                                        child: Marquee(
+                                          id: "${playerController.currentSong.value}_mini",
+                                          delay: const Duration(milliseconds: 300),
+                                          duration: const Duration(seconds: 5),
+                                          child: Text(
+                                            playerController.currentSong.value !=
+                                                    null
+                                                ? playerController
+                                                    .currentSong.value!.artist!
+                                                : "",
+                                            maxLines: 1,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleSmall,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
+
                         //player control
                         SizedBox(
                           width: isWideScreen && !bottomNavEnabled ? 450 : 90,

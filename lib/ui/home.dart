@@ -200,12 +200,7 @@ class Home extends StatelessWidget {
                     },
                     panel: const Player(),
                     body: const ScreenNavigation(),
-                    collapsed: !isWideScreen
-                        ? InkWell(
-                            onTap: playerController.playerPanelController.open,
-                            child: const MiniPlayer(),
-                          )
-                        : const MiniPlayer(),
+                    collapsed: const MiniPlayer(),
                   ))),
         ),
       ),
