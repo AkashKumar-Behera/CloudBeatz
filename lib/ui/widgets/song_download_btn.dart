@@ -24,7 +24,7 @@ class SongDownloadButton extends StatelessWidget {
     return Obx(() {
       final song =
           calledFromPlayer ? playerController.currentSong.value : song_;
-      if (song == null && calledFromPlayer) return const SizedBox.shrink();
+      if (song == null) return const SizedBox.shrink();
       final isDownloadingDone = (downloader.songQueue.contains(song) &&
           downloader.currentSong == song &&
           downloader.songDownloadingProgress.value == 100);
@@ -33,7 +33,7 @@ class SongDownloadButton extends StatelessWidget {
       }
 
       return (isDownloadingDone ||
-              Hive.box("SongDownloads").containsKey(song!.id))
+              Hive.box("SongDownloads").containsKey(song.id))
           ? Icon(
               Icons.download_done,
               color: Theme.of(context).textTheme.titleMedium!.color,

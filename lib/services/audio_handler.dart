@@ -1,10 +1,6 @@
 import 'dart:io';
-import 'dart:isolate';
 import 'dart:math';
 import 'package:audio_session/audio_session.dart';
-
-import 'package:flutter/services.dart';
-
 
 import 'package:hive/hive.dart';
 import 'package:get/get.dart';
@@ -24,11 +20,9 @@ import '/services/stream_service.dart';
 import '/models/hm_streaming_data.dart';
 import '/ui/player/player_controller.dart';
 import '../ui/screens/Home/home_screen_controller.dart';
-import '/services/background_task.dart';
 import '/services/permission_service.dart';
 import '../utils/helper.dart';
 import '/models/media_Item_builder.dart';
-import '/services/utils.dart';
 import '../ui/screens/Settings/settings_screen_controller.dart';
 import '../ui/screens/Library/library_controller.dart';
 // ignore: unused_import, implementation_imports, depend_on_referenced_packages
@@ -157,9 +151,9 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
         shuffleMode: (shuffleModeEnabled)
             ? AudioServiceShuffleMode.all
             : AudioServiceShuffleMode.none,
-        playing: playing,
-        updatePosition: _player.position,
-        bufferedPosition: _player.bufferedPosition,
+        playing: isSongLoading ? false : playing,
+        updatePosition: isSongLoading ? Duration.zero : _player.position,
+        bufferedPosition: isSongLoading ? Duration.zero : _player.bufferedPosition,
         speed: _player.speed,
         queueIndex: currentIndex,
       ));
@@ -459,6 +453,10 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
   Future<void> skipToNext() async {
     final index = _getNextSongIndex();
     if (index != currentIndex) {
+      if (_player.playing) {
+        await _player.pause();
+      }
+      await _player.seek(Duration.zero);
       if (index >= 0 && index < queue.value.length) {
         mediaItem.add(queue.value[index]);
       }
@@ -477,6 +475,10 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
     }
     final index = _getPrevSongIndex();
     if (index != currentIndex) {
+      if (_player.playing) {
+        await _player.pause();
+      }
+      await _player.seek(Duration.zero);
       if (index >= 0 && index < queue.value.length) {
         mediaItem.add(queue.value[index]);
       }
@@ -518,6 +520,26 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
         currentIndex = songIndex;
         final isNewUrlReq = extras['newUrl'] ?? false;
         final currentSong = queue.value[currentIndex];
+
+        // Immediately halt previous track audio and reset seekbar so old song stops playing instantly
+        if (_player.playing) {
+          await _player.pause();
+        }
+        await _player.seek(Duration.zero);
+
+        isSongLoading = true;
+        playbackState.add(playbackState.value.copyWith(
+          playing: false,
+          processingState: AudioProcessingState.loading,
+          updatePosition: Duration.zero,
+          bufferedPosition: Duration.zero,
+        ));
+        if (_playList.children.isNotEmpty) {
+          await _playList.clear();
+        }
+
+        mediaItem.add(currentSong);
+
         final futureStreamInfo = checkNGetUrl(
           currentSong.id,
           generateNewUrl: isNewUrlReq,
@@ -525,14 +547,7 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
           songArtist: currentSong.artist ?? "",
         );
         final bool restoreSession = extras['restoreSession'] ?? false;
-        isSongLoading = true;
-        playbackState.add(playbackState.value
-            .copyWith(processingState: AudioProcessingState.loading));
-        if (_playList.children.isNotEmpty) {
-          await _playList.clear();
-        }
 
-        mediaItem.add(currentSong);
         final streamInfo = await futureStreamInfo;
         if (songIndex != currentIndex) {
           return;
@@ -579,6 +594,7 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
           }
         } else {
           await _player.play();
+          _prefetchNextSong();
         }
         break;
 
@@ -641,14 +657,20 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
 
       case 'setSourceNPlay':
         final currMed = (extras!['mediaItem'] as MediaItem);
-        final futureStreamInfo = checkNGetUrl(
-          currMed.id,
-          songTitle: currMed.title,
-          songArtist: currMed.artist ?? "",
-        );
+
+        // Immediately halt previous track audio and reset seekbar so old song stops playing instantly
+        if (_player.playing) {
+          await _player.pause();
+        }
+        await _player.seek(Duration.zero);
+
         isSongLoading = true;
-        playbackState.add(playbackState.value
-            .copyWith(processingState: AudioProcessingState.loading));
+        playbackState.add(playbackState.value.copyWith(
+          playing: false,
+          processingState: AudioProcessingState.loading,
+          updatePosition: Duration.zero,
+          bufferedPosition: Duration.zero,
+        ));
         mediaItem.add(currMed);
         
         final currQueue = queue.value;
@@ -659,7 +681,16 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
           currentIndex = currQueue.indexWhere((item) => item.id == currMed.id);
         }
 
+        final futureStreamInfo = checkNGetUrl(
+          currMed.id,
+          songTitle: currMed.title,
+          songArtist: currMed.artist ?? "",
+        );
+
         final streamInfo = (await futureStreamInfo);
+        if (mediaItem.value?.id != currMed.id) {
+          return;
+        }
         if (!streamInfo.playable) {
           currentSongUrl = null;
           isSongLoading = false;
@@ -736,6 +767,7 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
         }
 
         await _player.play();
+        _prefetchNextSong();
         break;
 
       case 'toggleSkipSilence':
@@ -813,7 +845,11 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
         break;
 
       case 'openEqualizer':
-        EqualizerService.openEqualizer(_player.androidAudioSessionId!);
+        if (_player.androidAudioSessionId != null) {
+          EqualizerService.openEqualizer(_player.androidAudioSessionId!);
+        } else {
+          printERROR("openEqualizer: androidAudioSessionId is null");
+        }
         break;
 
       case 'saveSession':
@@ -939,6 +975,20 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
     return super.stop();
   }
 
+  void _prefetchNextSong() {
+    try {
+      final nextIdx = _getNextSongIndex();
+      if (nextIdx != currentIndex && nextIdx >= 0 && nextIdx < queue.value.length) {
+        final nextSong = queue.value[nextIdx];
+        checkNGetUrl(
+          nextSong.id,
+          songTitle: nextSong.title,
+          songArtist: nextSong.artist ?? "",
+        );
+      }
+    } catch (_) {}
+  }
+
 // Work around used [useNewInstanceOfExplode = false] to Fix Connection closed before full header was received issue
   Future<HMStreamingData> checkNGetUrl(String songId,
       {bool generateNewUrl = false,
@@ -1030,6 +1080,28 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
     } else {
       final songsUrlCacheBox = Hive.box("SongsUrlCache");
       final qualityIndex = Hive.box('AppPrefs').get('streamingQuality') ?? 1;
+
+      // Check if Hive already has recent valid url cache
+      if (!generateNewUrl && songsUrlCacheBox.containsKey(songId)) {
+        try {
+          final cachedData = songsUrlCacheBox.get(songId);
+          if (cachedData != null && cachedData['playable'] == true) {
+            final streamInfo = HMStreamingData.fromJson(cachedData);
+            final mediaUrl = streamInfo.audio?.url;
+            if (mediaUrl != null && mediaUrl.isNotEmpty) {
+              final uri = Uri.tryParse(mediaUrl);
+              final expireStr = uri?.queryParameters['expire'];
+              final expireSec = expireStr != null ? int.tryParse(expireStr) : null;
+              final nowSec = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+              if (expireSec == null || expireSec - nowSec > 300) {
+                printINFO("Got Song URL from valid SongsUrlCache ($songId) - 0ms delay");
+                streamInfo.setQualityIndex(qualityIndex as int);
+                return streamInfo;
+              }
+            }
+          }
+        } catch (_) {}
+      }
       
       String targetTitle = songTitle;
       String targetArtist = songArtist;

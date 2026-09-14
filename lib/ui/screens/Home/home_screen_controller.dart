@@ -11,8 +11,8 @@ import '/models/album.dart';
 import '/models/playlist.dart';
 import '/models/quick_picks.dart';
 import '/services/music_service.dart';
+import '/services/update_service.dart';
 import '../Settings/settings_screen_controller.dart';
-import '/ui/widgets/new_version_dialog.dart';
 
 class HomeScreenController extends GetxController {
   final MusicServices _musicServices = Get.find<MusicServices>();
@@ -408,14 +408,7 @@ class HomeScreenController extends GetxController {
     showVersionDialog.value =
         Hive.box("AppPrefs").get("newVersionVisibility") ?? true;
     if (showVersionDialog.isTrue) {
-      newVersionCheck(Get.find<SettingsScreenController>().currentVersion)
-          .then((value) {
-        if (value) {
-          showDialog(
-              context: Get.context!,
-              builder: (context) => const NewVersionDialog());
-        }
-      });
+      UpdateService.checkOnStartup();
     }
   }
 

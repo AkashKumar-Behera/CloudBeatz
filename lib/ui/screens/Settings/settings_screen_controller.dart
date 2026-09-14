@@ -9,10 +9,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../utils/update_check_flag_file.dart';
+import 'package:dio/dio.dart';
 import '/services/piped_service.dart';
+import '/services/update_service.dart';
 import '../Library/library_controller.dart';
 import '../../widgets/snackbar.dart';
-import '../../../utils/helper.dart';
 import '/services/music_service.dart';
 import '/ui/player/player_controller.dart';
 import '../Home/home_screen_controller.dart';
@@ -51,7 +52,7 @@ class SettingsScreenController extends GetxController {
   final squigglyAmplitude = 2.0.obs;
   final squigglyWavelength = 10.0.obs;
   final squigglySpeed = 0.05.obs;
-  final currentVersion = "V1.15.1";
+  final currentVersion = "v2.0.0";
 
   @override
   void onInit() {
@@ -66,9 +67,21 @@ class SettingsScreenController extends GetxController {
       "$_supportDir/Music" == downloadLocationPath.toString();
   String get supportDirPath => _supportDir;
 
-  _checkNewVersion() {
-    newVersionCheck(currentVersion)
-        .then((value) => isNewVersionAvailable.value = value);
+  _checkNewVersion() async {
+    try {
+      final dio = Dio();
+      final res = await dio.get(
+        UpdateService.repoApiUrl,
+        options: Options(receiveTimeout: const Duration(seconds: 4)),
+      );
+      if (res.statusCode == 200 && res.data != null) {
+        final tagName = res.data['tag_name'] ?? '';
+        isNewVersionAvailable.value =
+            UpdateService.isVersionNewer(tagName, currentVersion);
+      }
+    } catch (_) {
+      isNewVersionAvailable.value = false;
+    }
   }
 
   Future<String> _createInAppSongDownDir() async {

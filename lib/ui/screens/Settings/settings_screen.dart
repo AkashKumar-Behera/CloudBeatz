@@ -17,6 +17,7 @@ import '/ui/player/player_controller.dart';
 import '/ui/utils/theme_controller.dart';
 import 'components/custom_expansion_tile.dart';
 import 'settings_screen_controller.dart';
+import '/services/update_service.dart';
 
 
 class SettingsScreen extends StatelessWidget {
@@ -56,12 +57,7 @@ class SettingsScreen extends StatelessWidget {
                           type: MaterialType.transparency,
                           child: ListTile(
                             onTap: () {
-                              launchUrl(
-                                Uri.parse(
-                                  'https://github.com/AkashKumar-Behera/CloudBeatz/releases/latest',
-                                ),
-                                mode: LaunchMode.externalApplication,
-                              );
+                              UpdateService.checkForUpdate();
                             },
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10)),
@@ -745,6 +741,18 @@ class SettingsScreen extends StatelessWidget {
                         ),
                         mode: LaunchMode.externalApplication,
                       );
+                    },
+                  ),
+                  ListTile(
+                    contentPadding: const EdgeInsets.only(left: 5, right: 10),
+                    leading: const Icon(Icons.system_update_rounded),
+                    title: const Text("Check for Updates"),
+                    subtitle: Text(
+                      "Current: ${settingsController.currentVersion} • Tap to check latest release",
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    onTap: () {
+                      UpdateService.checkForUpdate(showToastIfLatest: true);
                     },
                   ),
                   const Divider(),

@@ -282,10 +282,16 @@ class PlayerController extends GetxController
           }
         }
       }
+      final isNewSong = currentSong.value?.id != mediaItem?.id;
       progressBarStatus.update((val) {
         val!.total = songDur;
-        val.current = oldState.current;
-        val.buffered = oldState.buffered;
+        if (isNewSong) {
+          val.current = Duration.zero;
+          val.buffered = Duration.zero;
+        } else {
+          val.current = oldState.current;
+          val.buffered = oldState.buffered;
+        }
       });
       if (mediaItem != null) {
         printINFO(mediaItem.title);
@@ -442,6 +448,13 @@ class PlayerController extends GetxController
 
     //currentSong.value = mediaItem;
     _playerPanelCheck();
+    progressBarStatus.update((val) {
+      val!.current = Duration.zero;
+      val.buffered = Duration.zero;
+      if (mediaItem?.duration != null && mediaItem!.duration! > Duration.zero) {
+        val.total = mediaItem.duration!;
+      }
+    });
     await _audioHandler
         .customAction("setSourceNPlay", {'mediaItem': mediaItem});
 
@@ -471,6 +484,14 @@ class PlayerController extends GetxController
     });
 
     _playerPanelCheck();
+    final selectedSong = mediaItems[index];
+    progressBarStatus.update((val) {
+      val!.current = Duration.zero;
+      val.buffered = Duration.zero;
+      if (selectedSong.duration != null && selectedSong.duration! > Duration.zero) {
+        val.total = selectedSong.duration!;
+      }
+    });
     await _audioHandler.updateQueue(mediaItems);
     if (isShuffleModeEnabled.value) {
       await _audioHandler.customAction("shuffleCmd", {"index": index});

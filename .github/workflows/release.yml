@@ -1,0 +1,313 @@
+name: CloudBeatz Multiplatform Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Release Tag (e.g. v2.0.0)'
+        required: true
+        default: 'v2.0.0'
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  # -------------------------------------------------------------------------
+  # 1. Android Build Job (Split ABIs + Universal APK)
+  # -------------------------------------------------------------------------
+  build-android:
+    name: Build Android APKs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: '3.24.2'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Generate Localization
+        run: dart localization/generator.dart
+
+      - name: Set Update Check Flag
+        run: |
+          mkdir -p lib/utils
+          echo "const updateCheckFlag = true;" > lib/utils/update_check_flag_file.dart
+
+      - name: Build Split ABIs APKs
+        run: flutter build apk --release --split-per-abi
+
+      - name: Build Universal APK
+        run: flutter build apk --release
+
+      - name: Rename and Prepare APK Artifacts
+        run: |
+          mkdir -p release_apks
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release_apks/app-arm64-v8a-release.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release_apks/app-armeabi-v7a-release.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk release_apks/app-x86_64-release.apk
+          cp build/app/outputs/flutter-apk/app-release.apk release_apks/app-universal-release.apk
+
+      - name: Upload Android Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apks
+          path: release_apks/*
+
+  # -------------------------------------------------------------------------
+  # 2. Windows Build Job (Inno Setup Installer .exe)
+  # -------------------------------------------------------------------------
+  build-windows:
+    name: Build Windows EXE Installer
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: '3.24.2'
+          cache: true
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Generate Localization
+        run: dart localization/generator.dart
+
+      - name: Set Update Check Flag
+        run: |
+          if (-not (Test-Path "lib/utils")) { New-Item -ItemType Directory -Path "lib/utils" }
+          "const updateCheckFlag = true;" | Out-File -FilePath lib/utils/update_check_flag_file.dart -Encoding utf8
+
+      - name: Build Flutter Windows Release
+        run: flutter build windows --release
+
+      - name: Compile Inno Setup Installer
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" windows\packaging\exe\inno_setup.iss
+
+      - name: Sign Executable if Certificate Provided
+        shell: pwsh
+        run: |
+          $exePath = "windows\packaging\exe\CloudBeatz-Setup.exe"
+          if ("${{ secrets.KEY_PEM }}" -ne "") {
+            Write-Host "Signing key found. Downloading osslsigncode..."
+            Invoke-WebRequest -Uri "https://github.com/mtrojnar/osslsigncode/releases/download/2.9/osslsigncode-2.9-windows-x64-mingw.zip" -OutFile "osslsigncode.zip"
+            Expand-Archive -Path "osslsigncode.zip" -DestinationPath "osslsigncode"
+            mkdir signed -Force
+            [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${{ secrets.KEY_PEM }}")) | Out-File -FilePath signed\key.pem -Encoding ASCII
+            cp "win_cert\DigiCertGlobalRootCA.crt" signed\
+            cp "win_cert\cert.pem" signed\
+            & "osslsigncode\bin\osslsigncode.exe" sign -certs signed\cert.pem -key signed\key.pem -t http://timestamp.digicert.com -in "$exePath" -out "signed\CloudBeatz-Setup.exe"
+            cp "signed\CloudBeatz-Setup.exe" "$exePath" -Force
+            Write-Host "Executable successfully signed!"
+          } else {
+            Write-Host "No KEY_PEM secret provided. Packaging unsigned installer."
+          }
+
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: windows/packaging/exe/CloudBeatz-Setup.exe
+
+  # -------------------------------------------------------------------------
+  # 3. iOS Build Job (Unsigned IPA for Sideloading)
+  # -------------------------------------------------------------------------
+  build-ios:
+    name: Build iOS IPA
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: '3.24.2'
+          cache: true
+
+      - name: Disable SPM
+        run: flutter config --no-enable-swift-package-manager
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Generate Localization
+        run: dart localization/generator.dart
+
+      - name: Set Update Check Flag
+        run: |
+          mkdir -p lib/utils
+          echo "const updateCheckFlag = true;" > lib/utils/update_check_flag_file.dart
+
+      - name: Generate Dummy Firebase Config if missing
+        run: |
+          mkdir -p lib/services
+          python3 -c "
+          import os
+          if not os.path.exists('lib/services/firebase_config.dart'):
+              with open('lib/services/firebase_config.dart', 'w') as f:
+                  f.write('''import \"package:firebase_core/firebase_core.dart\";\n\nclass FirebaseConfig {\n  static FirebaseOptions get currentPlatform => const FirebaseOptions(\n    apiKey: \"dummy_api_key\",\n    appId: \"1:1234567890:ios:abcdef123456\",\n    messagingSenderId: \"1234567890\",\n    projectId: \"dummy-project\",\n  );\n}\n''')
+              print('Created dummy firebase_config.dart')
+          "
+
+      - name: Patch terminate_restart for modern Flutter
+        run: |
+          python3 -c '
+          import glob
+          files = glob.glob("/Users/runner/.pub-cache/**/TerminateRestartPlugin.swift", recursive=True)
+          for f in files:
+              with open(f, "r") as file:
+                  content = file.read()
+              if "guard let flutterEngine = flutterViewController.engine" in content:
+                  content = content.replace("guard let flutterEngine = flutterViewController.engine else {\n                print(\" [TerminateRestart] Error: No Flutter engine found\")\n                return\n            }", "let flutterEngine = flutterViewController.engine")
+                  content = content.replace("guard let flutterEngine = flutterViewController.engine else {", "let flutterEngine = flutterViewController.engine; if false {")
+                  with open(f, "w") as file:
+                      file.write(content)
+                  print("Patched:", f)
+          '
+
+      - name: Download audiotags native binaries
+        run: |
+          for dir in $(find "$HOME/.pub-cache" -path "*/audiotags*/ios" -type d); do
+            echo "Pre-fetching native binaries for $dir"
+            mkdir -p "$dir/Frameworks"
+            cd "$dir/Frameworks"
+            curl -fL "https://github.com/erikas-taroza/audiotags/releases/download/v1.4.2/ios.zip" -o ios.zip || \
+            curl -fL "https://github.com/erikas-taroza/audiotags/releases/download/v1.4.1/ios.zip" -o ios.zip
+            unzip -qo ios.zip -d audiotags.xcframework || true
+            cd -
+          done
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/Pods
+            ~/Library/Caches/CocoaPods
+            ~/.cocoapods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod install
+          cd ..
+
+      - name: Build iOS Release (Unsigned)
+        run: flutter build ios --release --no-codesign
+
+      - name: Package into IPA
+        run: |
+          APP_PATH=$(find build -name "Runner.app" -type d | grep "iphoneos" | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            APP_PATH="build/ios/iphoneos/Runner.app"
+          fi
+          mkdir -p Payload
+          cp -r "$APP_PATH" Payload/
+          zip -r -1 CloudBeatz.ipa Payload
+          echo "IPA packaged successfully!"
+
+      - name: Upload iOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: CloudBeatz.ipa
+
+  # -------------------------------------------------------------------------
+  # 4. GitHub Release Creation Job (Collects all assets)
+  # -------------------------------------------------------------------------
+  create-release:
+    name: Publish GitHub Release
+    needs: [build-android, build-windows, build-ios]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine Release Tag
+        id: tag_info
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "RELEASE_TAG=${{ github.event.inputs.version_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "RELEASE_TAG=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download Android Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apks
+          path: release_assets
+
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+          path: release_assets
+
+      - name: Download iOS Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-ipa
+          path: release_assets
+
+      - name: List Release Assets
+        run: ls -la release_assets/
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag_info.outputs.RELEASE_TAG }}
+          name: CloudBeatz ${{ steps.tag_info.outputs.RELEASE_TAG }}
+          body: |
+            ### CloudBeatz ${{ steps.tag_info.outputs.RELEASE_TAG }}
+            
+            **Author:** Akash Kumar Behera  
+            **Website:** [cloudbeatz.web.app](https://cloudbeatz.web.app/)
+
+            #### Downloads:
+            - **Windows:** `CloudBeatz-Setup.exe` (Official Installer)
+            - **Android (ARM64):** `app-arm64-v8a-release.apk` (Most modern phones)
+            - **Android (ARMv7a):** `app-armeabi-v7a-release.apk` (Older 32-bit phones)
+            - **Android (x86_64):** `app-x86_64-release.apk` (Emulators / Chromebooks)
+            - **Android (Universal):** `app-universal-release.apk` (All architectures)
+            - **iOS:** `CloudBeatz.ipa` (Install via AltStore, SideStore, Sideloadly, or TrollStore)
+
+            #### Changes in this release:
+            - Instant playback acceleration with persistent streaming connection
+            - Audio bleed elimination on track transitions
+            - UI improvements and multiplatform stabilization
+          files: |
+            release_assets/CloudBeatz-Setup.exe
+            release_assets/app-arm64-v8a-release.apk
+            release_assets/app-armeabi-v7a-release.apk
+            release_assets/app-x86_64-release.apk
+            release_assets/app-universal-release.apk
+            release_assets/CloudBeatz.ipa
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

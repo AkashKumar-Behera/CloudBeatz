@@ -2,6 +2,15 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
+class _CachedStream {
+  final StreamProvider provider;
+  final DateTime timestamp;
+  _CachedStream(this.provider) : timestamp = DateTime.now();
+
+  bool get isExpired =>
+      DateTime.now().difference(timestamp).inMinutes > 180; // 3 hours
+}
+
 class StreamProvider {
   final bool playable;
   final List<Audio>? audioFormats;
@@ -9,18 +18,37 @@ class StreamProvider {
   StreamProvider(
       {required this.playable, this.audioFormats, this.statusMSG = ""});
 
+  static YoutubeExplode? _ytInstance;
+  static YoutubeExplode get _yt {
+    _ytInstance ??= YoutubeExplode();
+    return _ytInstance!;
+  }
+
+  // Fast in-memory cache for resolved streams to ensure 0ms instant playback on repeat/skip
+  static final Map<String, _CachedStream> _cache = {};
+
   static Future<StreamProvider> fetch(String videoId,
       {String title = "", String artist = ""}) async {
+    // 0. Check in-memory cache for instant zero-delay playback
+    if (_cache.containsKey(videoId)) {
+      final cached = _cache[videoId]!;
+      if (!cached.isExpired && cached.provider.playable) {
+        print("STREAM_FETCH: Instant cache hit for $videoId (0ms delay)");
+        return cached.provider;
+      } else {
+        _cache.remove(videoId);
+      }
+    }
+
     print("STREAM_FETCH: Starting stream fetch for $videoId (Title: $title)");
 
-    // 1. YouTubeExplode Direct Manifest Fetch (Instant / Zero Delay)
-    final yt = YoutubeExplode();
+    // 1. YouTubeExplode Direct Manifest Fetch (reuses persistent connection)
     try {
-      final res = await yt.videos.streamsClient.getManifest(videoId);
+      final res = await _yt.videos.streamsClient.getManifest(videoId);
       final audio = res.audioOnly;
       if (audio.isNotEmpty) {
         print("STREAM_FETCH: Instant success with YouTubeExplode");
-        return StreamProvider(
+        final provider = StreamProvider(
             playable: true,
             statusMSG: "OK",
             audioFormats: audio
@@ -34,14 +62,69 @@ class StreamProvider {
                     url: e.url.toString(),
                     size: e.size.totalBytes))
                 .toList());
+        _cache[videoId] = _CachedStream(provider);
+        return provider;
       }
     } catch (e) {
-      print("STREAM_FETCH YouTubeExplode error, trying fallbacks: $e");
-    } finally {
-      yt.close();
+      print("STREAM_FETCH YouTubeExplode error, resetting client and trying fallbacks: $e");
+      try {
+        _ytInstance?.close();
+      } catch (_) {}
+      _ytInstance = null;
     }
 
-    // 2. Fallback: If we have song title/artist, search JioSaavn
+    // 2. Fallback: Direct Piped API Stream Mirrors
+    final pipedMirrors = [
+      "https://api.piped.private.coffee/streams/$videoId",
+      "https://piped.video/api/v1/streams/$videoId",
+    ];
+
+    for (final mirror in pipedMirrors) {
+      try {
+        final dio = Dio();
+        final response = await dio.get(
+          mirror,
+          options: Options(
+            receiveTimeout: const Duration(milliseconds: 1500),
+            sendTimeout: const Duration(milliseconds: 1500),
+          ),
+        );
+        if (response.statusCode == 200 && response.data != null) {
+          final audioStreams = response.data["audioStreams"] as List? ?? [];
+          if (audioStreams.isNotEmpty) {
+            final target = audioStreams.firstWhere(
+              (s) => s["itag"] == 140 || s["format"] == "M4A",
+              orElse: () => audioStreams.first,
+            );
+            final url = target["url"]?.toString();
+            if (url != null && url.isNotEmpty) {
+              print("STREAM_FETCH: Resolved via Piped fallback ($mirror)");
+              final provider = StreamProvider(
+                playable: true,
+                statusMSG: "OK",
+                audioFormats: [
+                  Audio(
+                    itag: target["itag"] ?? 140,
+                    audioCodec: Codec.mp4a,
+                    bitrate: target["bitrate"] ?? 128000,
+                    duration: 0,
+                    loudnessDb: 0.0,
+                    url: url,
+                    size: 0,
+                  )
+                ],
+              );
+              _cache[videoId] = _CachedStream(provider);
+              return provider;
+            }
+          }
+        }
+      } catch (_) {
+        continue;
+      }
+    }
+
+    // 3. Fallback: If we have song title/artist, search JioSaavn
     if (title.isNotEmpty) {
       final saavnMirrors = [
         "https://saavn.me/api/search/songs",
@@ -57,8 +140,8 @@ class StreamProvider {
             mirror,
             queryParameters: {"query": searchQuery, "limit": 5},
             options: Options(
-              receiveTimeout: const Duration(seconds: 2),
-              sendTimeout: const Duration(seconds: 2),
+              receiveTimeout: const Duration(milliseconds: 1500),
+              sendTimeout: const Duration(milliseconds: 1500),
             ),
           );
           if (saavnRes.statusCode == 200 && saavnRes.data != null) {
@@ -86,7 +169,7 @@ class StreamProvider {
 
                 if (targetUrl != null && targetUrl.isNotEmpty) {
                   print("STREAM_FETCH: Resolved via JioSaavn fallback ($mirror)");
-                  return StreamProvider(
+                  final provider = StreamProvider(
                     playable: true,
                     statusMSG: "OK",
                     audioFormats: [
@@ -101,17 +184,19 @@ class StreamProvider {
                       )
                     ],
                   );
+                  _cache[videoId] = _CachedStream(provider);
+                  return provider;
                 }
               }
             }
           }
-        } catch (e) {
+        } catch (_) {
           continue;
         }
       }
     }
 
-    // 3. Fallback: Direct Cobalt audio stream resolution
+    // 4. Fallback: Direct Cobalt audio stream resolution
     final directResolvers = [
       "https://co.wuk.sh",
       "https://api.cobalt.tools",
@@ -132,8 +217,8 @@ class StreamProvider {
               "Accept": "application/json",
               "Content-Type": "application/json",
             },
-            receiveTimeout: const Duration(seconds: 3),
-            sendTimeout: const Duration(seconds: 3),
+            receiveTimeout: const Duration(milliseconds: 1500),
+            sendTimeout: const Duration(milliseconds: 1500),
           ),
         );
 
@@ -141,7 +226,7 @@ class StreamProvider {
           final streamUrl = response.data["url"]?.toString();
           if (streamUrl != null && streamUrl.isNotEmpty) {
             print("STREAM_FETCH: Success via Cobalt fallback $host");
-            return StreamProvider(
+            final provider = StreamProvider(
               playable: true,
               statusMSG: "OK",
               audioFormats: [
@@ -156,6 +241,8 @@ class StreamProvider {
                 )
               ],
             );
+            _cache[videoId] = _CachedStream(provider);
+            return provider;
           }
         }
       } catch (_) {
