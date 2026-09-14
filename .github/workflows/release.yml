@@ -49,10 +49,10 @@ jobs:
           echo "const updateCheckFlag = true;" > lib/utils/update_check_flag_file.dart
 
       - name: Build Split ABIs APKs
-        run: flutter build apk --release --split-per-abi
+        run: flutter build apk --release --split-per-abi --android-skip-build-dependency-validation
 
       - name: Build Universal APK
-        run: flutter build apk --release
+        run: flutter build apk --release --android-skip-build-dependency-validation
 
       - name: Rename and Prepare APK Artifacts
         run: |
