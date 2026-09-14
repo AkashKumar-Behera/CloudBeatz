@@ -48,6 +48,40 @@ jobs:
           mkdir -p lib/utils
           echo "const updateCheckFlag = true;" > lib/utils/update_check_flag_file.dart
 
+      - name: Generate Dummy Google Services Config if missing
+        run: |
+          if [ ! -f "android/app/google-services.json" ]; then
+            echo "Creating placeholder google-services.json for CI..."
+            cat << 'EOF' > android/app/google-services.json
+          {
+            "project_info": {
+              "project_number": "330385479279",
+              "firebase_url": "https://croto-a-default-rtdb.firebaseio.com",
+              "project_id": "croto-a",
+              "storage_bucket": "croto-a.firebasestorage.app"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:330385479279:android:31af42f94aaa5f5d28df9a",
+                  "android_client_info": {
+                    "package_name": "com.akash.cloudbeatz"
+                  }
+                },
+                "oauth_client": [],
+                "api_key": [
+                  {
+                    "current_key": "AIzaSyC6mV0rNpGZNxEJBR5OnEmDbK8x70eWiyI"
+                  }
+                ],
+                "services": {}
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+          fi
+
       - name: Build Split ABIs APKs
         run: flutter build apk --release --split-per-abi --android-skip-build-dependency-validation
 
@@ -90,6 +124,41 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Pre-download audiotags and smtc_windows binaries
+        shell: pwsh
+        run: |
+          $pubCache = "$env:LOCALAPPDATA\Pub\Cache\hosted\pub.dev"
+          
+          # 1. Audiotags
+          $audioTagsDir = Get-ChildItem -Path $pubCache -Directory -Filter "audiotags*" | Select-Object -First 1
+          if ($audioTagsDir) {
+            $audioTagsWin = Join-Path $audioTagsDir.FullName "windows"
+            Write-Host "Downloading audiotags binary to $($audioTagsWin)..."
+            Invoke-WebRequest -Uri "https://github.com/erikas-taroza/audiotags/releases/download/v1.4.2/windows.tar.gz" -OutFile "$audioTagsWin\windows.tar.gz"
+            tar -xzf "$audioTagsWin\windows.tar.gz" -C "$audioTagsWin"
+          }
+          
+          # 2. smtc_windows
+          $smtcDir = Get-ChildItem -Path $pubCache -Directory -Filter "smtc_windows*" | Select-Object -First 1
+          if ($smtcDir) {
+            $smtcWin = Join-Path $smtcDir.FullName "windows"
+            $smtcTargetDir = Join-Path $smtcWin "smtc_windows-v0.1.3"
+            New-Item -ItemType Directory -Force -Path $smtcTargetDir | Out-Null
+            Write-Host "Downloading smtc_windows binary to $($smtcWin)..."
+            Invoke-WebRequest -Uri "https://github.com/KRTirtho/frb_plugins/releases/download/smtc_windows-v0.1.3/windows.tar.gz" -OutFile "$smtcWin\smtc_windows-v0.1.3.tar.gz"
+            tar -xzf "$smtcWin\smtc_windows-v0.1.3.tar.gz" -C "$smtcTargetDir"
+            
+            # Patch smtc CMakeLists.txt to prevent symlink extraction errors
+            $cmakeFile = Join-Path $smtcWin "CMakeLists.txt"
+            if (Test-Path $cmakeFile) {
+              $content = Get-Content $cmakeFile -Raw
+              $patched = $content.Replace("file(REMOVE_RECURSE `${LibRoot})", "# file(REMOVE_RECURSE `${LibRoot})")
+              $patched = $patched.Replace("file(MAKE_DIRECTORY `${LibRoot})", "# file(MAKE_DIRECTORY `${LibRoot})")
+              $patched = $patched.Replace("execute_process(", "# execute_process(")
+              Set-Content -Path $cmakeFile -Value $patched -Encoding utf8
+            }
+          }
+
       - name: Generate Localization
         run: dart localization/generator.dart
 
@@ -99,7 +168,11 @@ jobs:
           "const updateCheckFlag = true;" | Out-File -FilePath lib/utils/update_check_flag_file.dart -Encoding utf8
 
       - name: Build Flutter Windows Release
-        run: flutter build windows --release
+        run: |
+          flutter build windows --release
+          if (Test-Path "build\windows\x64\runner\Release\cloudbeatz.exe") {
+            Copy-Item "build\windows\x64\runner\Release\cloudbeatz.exe" "build\windows\x64\runner\Release\CloudBeatz.exe" -Force
+          }
 
       - name: Compile Inno Setup Installer
         run: |
